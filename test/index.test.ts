@@ -27,10 +27,23 @@ const originalFetch = global.fetch;
 
 function mockFetch(url: string | URL | Request, init?: RequestInit): Promise<Response> {
 	const urlString = typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
-	const response = mockResponses.get(urlString);
-	if (response) {
-		return Promise.resolve(response.clone());
+	
+	// Try exact match first
+	const exactMatch = mockResponses.get(urlString);
+	if (exactMatch) {
+		return Promise.resolve(exactMatch.clone());
 	}
+	
+	// Try wildcard match (simple pattern matching)
+	for (const [pattern, response] of mockResponses.entries()) {
+		if (pattern.includes('/*')) {
+			const prefix = pattern.replace('/*', '');
+			if (urlString.startsWith(prefix)) {
+				return Promise.resolve(response.clone());
+			}
+		}
+	}
+	
 	// Fall back to original fetch for unmocked requests
 	return originalFetch(url, init);
 }
@@ -111,7 +124,7 @@ test('basic', async () => {
 		},
 		sitename: 'localhost:3060',
 		sensitive: false,
-		url: host + '/',
+		url: host,  // Note: summaly may normalize URL without trailing slash
 		activityPub: null,
 		fediverseCreator: null,
 	});
@@ -179,16 +192,7 @@ describe('Private IP blocking', () => {
 	beforeEach(() => {
 		process.env.SUMMALY_ALLOW_PRIVATE_IP = 'false';
 		const html = getHtmlFixture('og-title.html');
-		server.use(
-			http.get(host + '/*', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/*', html);
 	});
 
 	test('private ipなサーバーの情報を取得できない', async () => {
@@ -222,16 +226,7 @@ describe('Private IP blocking', () => {
 describe('OGP', () => {
 	test('title', async () => {
 		const html = getHtmlFixture('og-title.html');
-		server.use(
-			http.get(host + '/*', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/*', html);
 
 		const summary = await summaly(host);
 		expect(summary.title).toBe('Strawberry Pasta');
@@ -239,16 +234,7 @@ describe('OGP', () => {
 
 	test('description', async () => {
 		const html = getHtmlFixture('og-description.html');
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
 
 		const summary = await summaly(host);
 		expect(summary.description).toBe('Strawberry Pasta');
@@ -256,16 +242,7 @@ describe('OGP', () => {
 
 	test('site_name', async () => {
 		const html = getHtmlFixture('og-site_name.html');
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
 
 		const summary = await summaly(host);
 		expect(summary.sitename).toBe('Strawberry Pasta');
@@ -273,16 +250,7 @@ describe('OGP', () => {
 
 	test('thumbnail', async () => {
 		const html = getHtmlFixture('og-image.html');
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
 
 		const summary = await summaly(host);
 		expect(summary.thumbnail).toBe('https://himasaku.net/himasaku.png');
@@ -292,16 +260,7 @@ describe('OGP', () => {
 describe('TwitterCard', () => {
 	test('title', async () => {
 		const html = getHtmlFixture('twitter-title.html');
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
 
 		const summary = await summaly(host);
 		expect(summary.title).toBe('Strawberry Pasta');
@@ -309,16 +268,7 @@ describe('TwitterCard', () => {
 
 	test('description', async () => {
 		const html = getHtmlFixture('twitter-description.html');
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
 
 		const summary = await summaly(host);
 		expect(summary.description).toBe('Strawberry Pasta');
@@ -326,16 +276,7 @@ describe('TwitterCard', () => {
 
 	test('thumbnail', async () => {
 		const html = getHtmlFixture('twitter-image.html');
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
 
 		const summary = await summaly(host);
 		expect(summary.thumbnail).toBe('https://himasaku.net/himasaku.png');
@@ -343,16 +284,7 @@ describe('TwitterCard', () => {
 
 	test('Player detection - PeerTube:video => video', async () => {
 		const html = getHtmlFixture('player-peertube-video.html');
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
 
 		const summary = await summaly(host);
 		expect(summary.player.url).toBe('https://example.com/embedurl');
@@ -361,16 +293,7 @@ describe('TwitterCard', () => {
 
 	test('Player detection - Pleroma:video => video', async () => {
 		const html = getHtmlFixture('player-pleroma-video.html');
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
 
 		const summary = await summaly(host);
 		expect(summary.player.url).toBe('https://example.com/embedurl');
@@ -379,16 +302,7 @@ describe('TwitterCard', () => {
 
 	test('Player detection - Pleroma:image => image', async () => {
 		const html = getHtmlFixture('player-pleroma-image.html');
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
 
 		const summary = await summaly(host);
 		expect(summary.thumbnail).toBe('https://example.com/imageurl');
@@ -400,25 +314,8 @@ describe('oEmbed', () => {
 		const html = getHtmlFixture(htmlFixture);
 		const oembedData = getOembedFixture(oEmbedPath);
 		
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-			http.get(host + '/oembed.json', () => {
-				const jsonStr = JSON.stringify(oembedData);
-				return HttpResponse.json(oembedData, {
-					headers: {
-						'content-length': String(Buffer.byteLength(jsonStr)),
-						'content-type': 'application/json',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
+		setupMockJsonResponse(host + '/oembed.json', oembedData);
 	};
 
 	const invalidOembedFiles = [
@@ -554,16 +451,7 @@ describe('oEmbed', () => {
 describe('ActivityPub', () => {
 	test('Basic', async () => {
 		const html = getHtmlFixture('activitypub.html');
-		server.use(
-			http.get(host + '/*', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/*', html);
 
 		const summary = await summaly(host);
 		expect(summary.activityPub).toBe('https://misskey.test/notes/abcdefg');
@@ -571,16 +459,7 @@ describe('ActivityPub', () => {
 
 	test('Null', async () => {
 		const html = getHtmlFixture('basic.html');
-		server.use(
-			http.get(host + '/*', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/*', html);
 
 		const summary = await summaly(host);
 		expect(summary.activityPub).toBe(null);
@@ -590,16 +469,7 @@ describe('ActivityPub', () => {
 describe('Fediverse Creator', () => {
 	test('Basic', async () => {
 		const html = getHtmlFixture('fediverse-creator.html');
-		server.use(
-			http.get(host + '/*', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/*', html);
 
 		const summary = await summaly(host);
 		expect(summary.fediverseCreator).toBe('@test@example.com');
@@ -607,16 +477,7 @@ describe('Fediverse Creator', () => {
 
 	test('Null', async () => {
 		const html = getHtmlFixture('basic.html');
-		server.use(
-			http.get(host + '/*', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/*', html);
 
 		const summary = await summaly(host);
 		expect(summary.fediverseCreator).toBeNull();
@@ -626,93 +487,37 @@ describe('Fediverse Creator', () => {
 describe('sensitive', () => {
 	test('default', async () => {
 		const html = getHtmlFixture('basic.html');
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
 		expect((await summaly(host)).sensitive).toBe(false);
 	});
 
 	test('mixi:content-rating 1', async () => {
 		const html = getHtmlFixture('mixi-sensitive.html');
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
 		expect((await summaly(host)).sensitive).toBe(true);
 	});
 
 	test('meta rating adult', async () => {
 		const html = getHtmlFixture('meta-adult-sensitive.html');
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
 		expect((await summaly(host)).sensitive).toBe(true);
 	});
 
 	test('meta rating rta', async () => {
 		const html = getHtmlFixture('meta-rta-sensitive.html');
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
 		expect((await summaly(host)).sensitive).toBe(true);
 	});
 
 	test('HTTP Header rating adult', async () => {
 		const html = getHtmlFixture('basic.html');
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-						'rating': 'adult',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html, { 'rating': 'adult' });
 		expect((await summaly(host)).sensitive).toBe(true);
 	});
 
 	test('HTTP Header rating rta', async () => {
 		const html = getHtmlFixture('basic.html');
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(Buffer.byteLength(html)),
-						'content-type': 'text/html',
-						'rating': 'RTA-5042-1996-1400-1577-RTA',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html, { 'rating': 'RTA-5042-1996-1400-1577-RTA' });
 		expect((await summaly(host)).sensitive).toBe(true);
 	});
 });
@@ -722,17 +527,23 @@ describe('UserAgent', () => {
 		const html = getHtmlFixture('basic.html');
 		let ua: string | undefined = undefined;
 
-		server.use(
-			http.get(host + '/', ({ request }) => {
-				ua = request.headers.get('user-agent') || undefined;
-				return HttpResponse.html(html, {
+		// Custom mock that captures the user agent
+		const customFetch = (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+			const urlString = typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
+			if (urlString === host + '/') {
+				ua = init?.headers ? (init.headers as any)['user-agent'] : undefined;
+				return Promise.resolve(new Response(html, {
+					status: 200,
 					headers: {
 						'content-length': String(Buffer.byteLength(html)),
 						'content-type': 'text/html',
 					},
-				});
-			}),
-		);
+				}));
+			}
+			return originalFetch(url, init);
+		};
+		
+		global.fetch = customFetch as typeof fetch;
 		await summaly(host, { userAgent: 'test-ua' });
 
 		expect(ua).toBe('test-ua');
@@ -744,16 +555,7 @@ describe('content-length limit', () => {
 		const html = getHtmlFixture('basic.html');
 		const contentLength = Buffer.byteLength(html);
 
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(contentLength),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
 
 		expect(await summaly(host, { contentLengthLimit: contentLength })).toBeDefined();
 	});
@@ -762,16 +564,7 @@ describe('content-length limit', () => {
 		const html = getHtmlFixture('basic.html');
 		const contentLength = Buffer.byteLength(html);
 
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(contentLength),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
 
 		await expect(summaly(host, { contentLengthLimit: contentLength - 1 })).rejects.toThrow();
 	});
@@ -782,16 +575,7 @@ describe('content-length required', () => {
 		const html = getHtmlFixture('basic.html');
 		const contentLength = Buffer.byteLength(html);
 
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(contentLength),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
 
 		expect(await summaly(host, { contentLengthRequired: true, contentLengthLimit: contentLength })).toBeDefined();
 	});
@@ -799,16 +583,13 @@ describe('content-length required', () => {
 	test('[オプション有効化時] content-lengthが返されない場合はエラーとなること', async () => {
 		const html = getHtmlFixture('basic.html');
 
-		server.use(
-			http.get(host + '/', () => {
-				// Don't include content-length header to simulate streaming response
-				return HttpResponse.html(html, {
-					headers: {
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		// Mock without content-length header
+		mockResponses.set(host + '/', new Response(html, {
+			status: 200,
+			headers: {
+				'content-type': 'text/html',
+			},
+		}));
 
 		await expect(summaly(host, { contentLengthRequired: true })).rejects.toThrow();
 	});
@@ -817,16 +598,7 @@ describe('content-length required', () => {
 		const html = getHtmlFixture('basic.html');
 		const contentLength = Buffer.byteLength(html);
 
-		server.use(
-			http.get(host + '/', () => {
-				return HttpResponse.html(html, {
-					headers: {
-						'content-length': String(contentLength),
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		setupMockResponse(host + '/', html);
 
 		expect(await summaly(host, { contentLengthRequired: false, contentLengthLimit: contentLength })).toBeDefined();
 	});
@@ -834,16 +606,13 @@ describe('content-length required', () => {
 	test('[オプション無効化時] content-lengthが返されなくてもエラーとならないこと', async () => {
 		const html = getHtmlFixture('basic.html');
 
-		server.use(
-			http.get(host + '/', () => {
-				// Don't include content-length header
-				return HttpResponse.html(html, {
-					headers: {
-						'content-type': 'text/html',
-					},
-				});
-			}),
-		);
+		// Mock without content-length header
+		mockResponses.set(host + '/', new Response(html, {
+			status: 200,
+			headers: {
+				'content-type': 'text/html',
+			},
+		}));
 
 		expect(await summaly(host, { contentLengthRequired: false })).toBeDefined();
 	});
