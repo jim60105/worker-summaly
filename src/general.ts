@@ -4,7 +4,7 @@ import type { default as Summary, Player } from '@/summary.js';
 import { clip } from '@/utils/clip.js';
 import { cleanupTitle } from '@/utils/cleanup-title.js';
 
-import { get, head, scpaping } from '@/utils/got.js';
+import { get, head, scpaping } from '@/utils/fetch.js';
 
 /**
  * Contains only the html snippet for a sanitized iframe as the thumbnail is
@@ -158,13 +158,9 @@ export async function general(_url: URL | string, opts?: GeneralScrapingOptions)
 	return await parseGeneral(url, res);
 }
 
-function headerEqualValueContains(search: string, headerValue: string | string[] | undefined) {
+function headerEqualValueContains(search: string, headerValue: string | null | undefined) {
 	if (!headerValue) {
 		return false;
-	}
-
-	if (Array.isArray(headerValue)) {
-		return headerValue.some(value => value.toLowerCase() === search.toLowerCase());
 	}
 
 	return headerValue.toLowerCase() === search.toLowerCase();
@@ -259,8 +255,8 @@ export async function parseGeneral(_url: URL | string, res: Awaited<ReturnType<t
 	// https://developer.mixi.co.jp/connect/mixi_plugin/mixi_check/spec_mixi_check/#toc-18-
 	const sensitive =
 		$('meta[property=\'mixi:content-rating\']').attr('content') === '1' ||
-		headerEqualValueContains('adult', res.response.headers.rating) ||
-		headerEqualValueContains('RTA-5042-1996-1400-1577-RTA', res.response.headers.rating) ||
+		headerEqualValueContains('adult', res.response.headers.get('rating')) ||
+		headerEqualValueContains('RTA-5042-1996-1400-1577-RTA', res.response.headers.get('rating')) ||
 		$('meta[name=\'rating\']').attr('content') === 'adult' ||
 		$('meta[name=\'rating\']').attr('content')?.toUpperCase() === 'RTA-5042-1996-1400-1577-RTA';
 

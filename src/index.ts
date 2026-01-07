@@ -3,12 +3,11 @@
  * https://github.com/misskey-dev/summaly
  */
 
-import { got, type Agents as GotAgents } from 'got';
 import type { FastifyInstance } from 'fastify';
 import { SummalyResult } from '@/summary.js';
 import { SummalyPlugin as _SummalyPlugin } from '@/iplugin.js';
 import { general, type GeneralScrapingOptions } from '@/general.js';
-import { DEFAULT_BOT_UA, DEFAULT_OPERATION_TIMEOUT, DEFAULT_RESPONSE_TIMEOUT, agent, setAgent } from '@/utils/got.js';
+import { DEFAULT_BOT_UA, DEFAULT_OPERATION_TIMEOUT, DEFAULT_RESPONSE_TIMEOUT, head } from '@/utils/fetch.js';
 import { plugins as builtinPlugins } from '@/plugins/index.js';
 
 export type SummalyPlugin = _SummalyPlugin;
@@ -28,11 +27,6 @@ export type SummalyOptions = {
 	 * Custom Plugins
 	 */
 	plugins?: SummalyPlugin[];
-
-	/**
-	 * Custom HTTP agent
-	 */
-	agent?: GotAgents;
 
 	/**
 	 * User-Agent for the request
@@ -74,41 +68,15 @@ export const summalyDefaultOptions = {
  * Summarize an web page
  */
 export const summaly = async (url: string, options?: SummalyOptions): Promise<SummalyResult> => {
-	if (options?.agent) setAgent(options.agent);
-
 	const opts = Object.assign(summalyDefaultOptions, options);
 
 	const plugins = builtinPlugins.concat(opts.plugins || []);
 
 	let actualUrl = url;
 	if (opts.followRedirects) {
-		// .catch(() => url)にすればいいけど、jestにtrace-redirectを食わせるのが面倒なのでtry-catch
 		try {
-			const timeout = opts.responseTimeout ?? DEFAULT_RESPONSE_TIMEOUT;
-			const operationTimeout = opts.operationTimeout ?? DEFAULT_OPERATION_TIMEOUT;
-			actualUrl = await got
-				.head(url, {
-					headers: {
-						accept: 'text/html,application/xhtml+xml',
-						'user-agent': opts.userAgent ?? DEFAULT_BOT_UA,
-						'accept-language': opts.lang ?? undefined,
-					},
-					timeout: {
-						lookup: timeout,
-						connect: timeout,
-						secureConnect: timeout,
-						socket: timeout, // read timeout
-						response: timeout,
-						send: timeout,
-						request: operationTimeout, // whole operation timeout
-					},
-					agent,
-					http2: false,
-					retry: {
-						limit: 0,
-					},
-				})
-				.then(res => res.url);
+			const response = await head(url);
+			actualUrl = response.url;
 		} catch {
 			actualUrl = url;
 		}
