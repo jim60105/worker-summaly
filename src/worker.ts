@@ -104,11 +104,11 @@ export default {
 				return jsonResponse(result);
 			} catch (error) {
 				console.error('Summarization error:', error);
-				
-				const message = error instanceof Error 
-					? error.message 
+
+				const message = error instanceof Error
+					? error.message
 					: 'Unknown error occurred';
-				
+
 				return jsonResponse(
 					{ error: message },
 					500,
