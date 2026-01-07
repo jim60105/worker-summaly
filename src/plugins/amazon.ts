@@ -1,4 +1,4 @@
-import { scpaping } from '@/utils/fetch.js';
+import { scraping } from '@/utils/fetch.js';
 import summary from '@/summary.js';
 
 export function test(url: URL): boolean {
@@ -19,7 +19,7 @@ export function test(url: URL): boolean {
 }
 
 export async function summarize(url: URL): Promise<summary> {
-	const res = await scpaping(url.href);
+	const res = await scraping(url.href);
 	const $ = res.$;
 
 	const title = $('#title').text();
