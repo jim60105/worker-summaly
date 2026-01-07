@@ -92,7 +92,7 @@ export async function getResponse(args: FetchOptions): Promise<Response> {
 /**
  * Fetch and parse HTML content
  */
-export async function scpaping(url: string, opts?: GeneralScrapingOptions) {
+export async function scraping(url: string, opts?: GeneralScrapingOptions) {
 	const response = await getResponse({
 		url,
 		method: 'GET',

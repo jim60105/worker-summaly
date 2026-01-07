@@ -4,7 +4,7 @@ import type { default as Summary, Player } from '@/summary.js';
 import { clip } from '@/utils/clip.js';
 import { cleanupTitle } from '@/utils/cleanup-title.js';
 
-import { get, head, scpaping } from '@/utils/fetch.js';
+import { get, head, scraping } from '@/utils/fetch.js';
 
 /**
  * Contains only the html snippet for a sanitized iframe as the thumbnail is
@@ -145,7 +145,7 @@ export async function general(_url: URL | string, opts?: GeneralScrapingOptions)
 
 	const url = typeof _url === 'string' ? new URL(_url) : _url;
 
-	const res = await scpaping(url.href, {
+	const res = await scraping(url.href, {
 		lang: lang || undefined,
 		userAgent: opts?.userAgent,
 		followRedirects: opts?.followRedirects,
@@ -166,7 +166,7 @@ function headerEqualValueContains(search: string, headerValue: string | null | u
 	return headerValue.toLowerCase() === search.toLowerCase();
 }
 
-export async function parseGeneral(_url: URL | string, res: Awaited<ReturnType<typeof scpaping>>): Promise<Summary | null> {
+export async function parseGeneral(_url: URL | string, res: Awaited<ReturnType<typeof scraping>>): Promise<Summary | null> {
 	const url = typeof _url === 'string' ? new URL(_url) : _url;
 	const $ = res.$;
 	const twitterCard =
