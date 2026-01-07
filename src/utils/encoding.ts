@@ -1,3 +1,23 @@
+// Reusable TextDecoder for ASCII parsing (module-level constant)
+const asciiDecoder = new TextDecoder('ascii', { fatal: false, ignoreBOM: true });
+
+// Cache for TextDecoder instances to improve performance
+const decoderCache = new Map<string, TextDecoder>();
+
+/**
+ * Get or create a cached TextDecoder for the specified encoding
+ * @param encoding Encoding name
+ * @returns TextDecoder instance
+ */
+function getDecoder(encoding: string): TextDecoder {
+	let decoder = decoderCache.get(encoding);
+	if (!decoder) {
+		decoder = new TextDecoder(encoding, { fatal: false, ignoreBOM: true });
+		decoderCache.set(encoding, decoder);
+	}
+	return decoder;
+}
+
 const regCharset = /charset\s*=\s*["']?([\w-]+)/i;
 
 /**
@@ -12,7 +32,6 @@ export function detectEncoding(body: Uint8Array): string {
 	
 	// Use ASCII decoding to find charset in HTML meta tags
 	// This is reliable since charset declarations are always ASCII-compatible
-	const asciiDecoder = new TextDecoder('ascii', { fatal: false, ignoreBOM: true });
 	const asciiText = asciiDecoder.decode(sample);
 	
 	const matchMeta = asciiText.match(regCharset);
@@ -36,11 +55,11 @@ export function toUtf8(body: Uint8Array, encoding: string): string {
 	const normalizedEncoding = normalizeEncoding(encoding);
 	
 	try {
-		const decoder = new TextDecoder(normalizedEncoding, { fatal: false, ignoreBOM: true });
+		const decoder = getDecoder(normalizedEncoding);
 		return decoder.decode(body);
 	} catch {
 		// Fallback to UTF-8 if encoding is not supported
-		const decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
+		const decoder = getDecoder('utf-8');
 		return decoder.decode(body);
 	}
 }
@@ -55,7 +74,7 @@ function normalizeEncoding(encoding: string): string {
 	
 	// Handle Japanese encoding aliases
 	// TextDecoder supports 'shift-jis' but not 'cp932', 'windows-31j', etc.
-	if (['shift_jis', 'shift-jis', 'windows-31j', 'x-sjis', 'cp932'].includes(lower)) {
+	if (['shift-jis', 'windows-31j', 'x-sjis', 'cp932'].includes(lower)) {
 		return 'shift-jis';
 	}
 	
