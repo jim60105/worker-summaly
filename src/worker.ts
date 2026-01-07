@@ -49,7 +49,9 @@ function jsonResponse(data: unknown, status = 200): Response {
 export default {
 	async fetch(
 		request: Request,
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		_env: Env,
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		_ctx: ExecutionContext,
 	): Promise<Response> {
 		// Handle CORS preflight
