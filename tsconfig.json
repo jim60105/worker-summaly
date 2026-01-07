@@ -9,9 +9,9 @@
 		"noFallthroughCasesInSwitch": true,
 		"declaration": true,
 		"sourceMap": false,
-		"target": "es2021",
-		"module": "nodenext",
-		"moduleResolution": "nodenext",
+		"target": "es2022",
+		"module": "es2022",
+		"moduleResolution": "bundler",
 		"allowSyntheticDefaultImports": true,
 		"removeComments": false,
 		"noLib": false,
@@ -31,14 +31,16 @@
 		},
 		"outDir": "./built",
 		"types": [
+			"@cloudflare/workers-types",
 			"node"
 		],
 		"typeRoots": [
 			"./node_modules/@types",
+			"./node_modules",
 			"./src/@types"
 		],
 		"lib": [
-			"esnext"
+			"es2022"
 		]
 	},
 	"compileOnSave": false,

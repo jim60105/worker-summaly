@@ -18,9 +18,12 @@
     "build": "tsc && tsc-alias",
     "eslint": "eslint",
     "test": "vitest run ./test/index.test.ts",
-    "serve": "fastify start ./built/index.js"
+    "serve": "fastify start ./built/index.js",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260103.0",
     "@misskey-dev/eslint-plugin": "^2.1.0",
     "@types/debug": "4.1.12",
     "@types/escape-regexp": "^0.0.3",
@@ -34,7 +37,8 @@
     "fastify-cli": "^7.4.0",
     "tsc-alias": "^1.8.16",
     "typescript": "5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wrangler": "^4.54.0"
   },
   "dependencies": {
     "cheerio": "1.1.2",
