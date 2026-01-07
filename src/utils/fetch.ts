@@ -55,7 +55,7 @@ export async function getResponse(args: FetchOptions): Promise<Response> {
 			throw new StatusError(
 				`${response.status} ${response.statusText}`,
 				response.status,
-				response.statusText
+				response.statusText,
 			);
 		}
 		

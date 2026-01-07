@@ -7,7 +7,7 @@ import type { FastifyInstance } from 'fastify';
 import { SummalyResult } from '@/summary.js';
 import { SummalyPlugin as _SummalyPlugin } from '@/iplugin.js';
 import { general, type GeneralScrapingOptions } from '@/general.js';
-import { DEFAULT_BOT_UA, DEFAULT_OPERATION_TIMEOUT, DEFAULT_RESPONSE_TIMEOUT, head } from '@/utils/fetch.js';
+import { head } from '@/utils/fetch.js';
 import { plugins as builtinPlugins } from '@/plugins/index.js';
 
 export type SummalyPlugin = _SummalyPlugin;
