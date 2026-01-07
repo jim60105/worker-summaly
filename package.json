@@ -1,11 +1,14 @@
 {
-  "name": "@misskey-dev/summaly",
-  "version": "5.2.5",
-  "description": "Get web page's summary",
+  "name": "@jim60105/summaly",
+  "version": "6.0.0",
+  "description": "Get web page's summary - Cloudflare Workers edition",
   "author": "syuilo <syuilotan@yahoo.co.jp>",
+  "maintainers": [
+    "Jim Chen <Jim@ChenJ.im>"
+  ],
   "license": "MIT",
-  "repository": "https://github.com/misskey-dev/summaly.git",
-  "bugs": "https://github.com/misskey-dev/summaly/issues",
+  "repository": "https://github.com/jim60105/worker-summaly.git",
+  "bugs": "https://github.com/jim60105/worker-summaly/issues",
   "main": "./built/index.js",
   "type": "module",
   "types": "./built/index.d.ts",
@@ -18,9 +21,17 @@
     "build": "tsc && tsc-alias",
     "eslint": "eslint",
     "test": "vitest run ./test/index.test.ts",
-    "serve": "fastify start ./built/index.js"
+    "test:unit": "vitest run ./test/index.test.ts",
+    "test:worker": "vitest run --config vitest.worker.config.ts",
+    "test:all": "vitest run ./test/index.test.ts && vitest run --config vitest.worker.config.ts",
+    "test:watch": "vitest",
+    "serve": "fastify start ./built/index.js",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.12.0",
+    "@cloudflare/workers-types": "^4.20260103.0",
     "@misskey-dev/eslint-plugin": "^2.1.0",
     "@types/debug": "4.1.12",
     "@types/escape-regexp": "^0.0.3",
@@ -34,15 +45,12 @@
     "fastify-cli": "^7.4.0",
     "tsc-alias": "^1.8.16",
     "typescript": "5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wrangler": "^4.54.0"
   },
   "dependencies": {
     "cheerio": "1.1.2",
     "escape-regexp": "0.0.1",
-    "got": "14.6.5",
-    "html-entities": "2.6.0",
-    "iconv-lite": "0.7.0",
-    "jschardet": "3.1.4",
-    "private-ip": "3.0.2"
+    "html-entities": "2.6.0"
   }
 }

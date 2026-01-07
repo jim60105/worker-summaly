@@ -28,6 +28,9 @@ jobs:
       - name: Build
         run: |
           pnpm build
-      - name: Test
+      - name: Test (Unit Tests)
         run: |
-          SKIP_NETWORK_TEST=true pnpm test
+          SKIP_NETWORK_TEST=true pnpm test:unit
+      - name: Test (Worker Integration Tests)
+        run: |
+          SKIP_NETWORK_TEST=true pnpm test:worker
