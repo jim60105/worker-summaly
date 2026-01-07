@@ -1,5 +1,32 @@
-(unreleased)
+6.0.0 / 2026-01-08
 ------------------
+**[BREAKING CHANGE] Migrated to Cloudflare Workers**
+
+* **完全遷移至 Cloudflare Workers 平台**
+  - 移除 Node.js 相依性（`got`、`private-ip`、`iconv-lite` 等）
+  - 使用原生 `fetch` API 取代 `got`
+  - 使用 `TextDecoder` API 進行字元編碼處理
+  - 新增 Worker entry point (`src/worker.ts`)
+* **測試架構更新**
+  - 遷移至 `@cloudflare/vitest-pool-workers`
+  - 測試在 Workers runtime 中執行
+  - HTML/oEmbed fixtures 改為嵌入式 TypeScript 模組
+  - 新增 Worker 整合測試套件
+* **新增 API endpoints**
+  - `GET /` - 主要摘要端點
+  - `GET /health` - 健康檢查端點
+  - `OPTIONS /` - CORS preflight 處理
+* **移除功能**
+  - Fastify plugin 支援（不再適用於 Workers）
+  - Custom HTTP agent 選項（Workers 環境不支援）
+  - Private IP 阻擋（依賴 Cloudflare 安全功能）
+* **開發工具更新**
+  - 使用 `wrangler` 進行本地開發與部署
+  - 新增 `pnpm dev` 和 `pnpm deploy` 指令
+* **文件更新**
+  - 新增 `AGENTS.md` - Copilot instructions
+  - 新增 `TESTING.md` - 測試文件
+  - 更新 README.md 以反映 Workers 用法
 
 5.2.5 / 2025/10/22
 ------------------

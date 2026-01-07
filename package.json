@@ -1,11 +1,14 @@
 {
-  "name": "@misskey-dev/summaly",
-  "version": "5.2.5",
-  "description": "Get web page's summary",
+  "name": "@jim60105/summaly",
+  "version": "6.0.0",
+  "description": "Get web page's summary - Cloudflare Workers edition",
   "author": "syuilo <syuilotan@yahoo.co.jp>",
+  "maintainers": [
+    "Jim Chen <Jim@ChenJ.im>"
+  ],
   "license": "MIT",
-  "repository": "https://github.com/misskey-dev/summaly.git",
-  "bugs": "https://github.com/misskey-dev/summaly/issues",
+  "repository": "https://github.com/jim60105/worker-summaly.git",
+  "bugs": "https://github.com/jim60105/worker-summaly/issues",
   "main": "./built/index.js",
   "type": "module",
   "types": "./built/index.d.ts",

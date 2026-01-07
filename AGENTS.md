@@ -1,24 +1,32 @@
-# Summaly - Cloudflare Workers Migration
+# Worker Summaly
+
+A web page summarization API running on **Cloudflare Workers**. Forked from [misskey-dev/summaly](https://github.com/misskey-dev/summaly) and migrated to run on Cloudflare's edge network.
 
 ## Project Overview
 
-Summaly is a web page summarization library that extracts metadata (title, description, thumbnail, icon, oEmbed player, etc.) from URLs. Originally forked from [misskey-dev/summaly](https://github.com/misskey-dev/summaly), this project is being migrated to run on **Cloudflare Workers**.
+Worker Summaly extracts metadata from web pages including:
 
-### Core Functionality
+- Open Graph and Twitter Card metadata
+- Standard HTML metadata (title, description, favicon)
+- oEmbed player detection for embedded media
+- ActivityPub and Fediverse creator metadata
+- Sensitive content detection via HTTP headers and meta tags
 
-- Fetches and parses web pages to extract Open Graph, Twitter Card, and standard HTML metadata
-- Supports oEmbed player detection for embedded media
-- Includes built-in plugins for Amazon, Bluesky, Wikipedia, and Branch.io deep links
-- Detects sensitive content via HTTP headers and meta tags
-- Supports ActivityPub and Fediverse creator metadata
+### Built-in Plugins
+
+- **Amazon** - Product page metadata extraction
+- **Bluesky** - Social post metadata handling
+- **Wikipedia** - API-based article summarization
+- **Branch.io** - Deep link resolution
 
 ## Project Structure
 
 ```text
 src/
-├── index.ts              # Main entry point, exports `summaly()` function and Fastify plugin
-├── general.ts            # Core HTML parsing logic, oEmbed player detection
-├── summary.ts            # TypeScript type definitions for Summary/SummalyResult
+├── worker.ts             # Cloudflare Workers entry point (fetch handler)
+├── index.ts              # Core summaly() function and options
+├── general.ts            # HTML parsing logic, oEmbed player detection
+├── summary.ts            # TypeScript type definitions (Summary/SummalyResult)
 ├── iplugin.ts            # Plugin interface definition
 ├── plugins/              # Built-in plugins
 │   ├── index.ts          # Plugin registry
@@ -27,17 +35,19 @@ src/
 │   ├── wikipedia.ts      # Wikipedia API integration
 │   └── branchio-deeplinks.ts  # Branch.io deep link resolver
 └── utils/
-    ├── got.ts            # HTTP client wrapper (MUST BE REPLACED for Workers)
+    ├── fetch.ts          # HTTP client using native fetch API
     ├── encoding.ts       # Character encoding detection/conversion
     ├── clip.ts           # Text truncation utility
     ├── cleanup-title.ts  # Title normalization
-    ├── null-or-empty.ts  # String validation
-    └── status-error.ts   # Custom error class
+    ├── null-or-empty.ts  # String validation helpers
+    └── status-error.ts   # Custom HTTP error class
 
 test/
-├── index.test.ts         # Main test suite using Vitest
-├── htmls/                # HTML fixtures for testing
-└── oembed/               # oEmbed JSON fixtures
+├── index.test.ts         # Unit tests (runs in Workers runtime)
+├── worker.test.ts        # Worker integration tests
+└── fixtures/
+    ├── html.ts           # Embedded HTML test fixtures
+    └── oembed.ts         # Embedded oEmbed JSON fixtures
 ```
 
 ## Coding Standards
@@ -55,183 +65,73 @@ test/
 - Use single quotes for strings
 - Trailing commas in multi-line arrays/objects
 - Prefer `null` over `undefined` for explicit "no value" cases
-- Use nullish coalescing (`??`) is disabled; use logical OR (`||`) for fallbacks
+- Nullish coalescing (`??`) is disabled; use logical OR (`||`) for fallbacks
+- Always use `.js` extension in import statements (even for `.ts` files)
 
 ### ESLint Configuration
 
-The project uses `@misskey-dev/eslint-plugin` with custom rules:
+The project uses `@misskey-dev/eslint-plugin` with custom overrides:
 
-- `@typescript-eslint/prefer-nullish-coalescing`: OFF (fallback on empty strings needed)
+- `@typescript-eslint/prefer-nullish-coalescing`: OFF (need fallback on empty strings)
+- `import/no-default-export`: OFF for Worker entry point only
 
-## Build & Development Commands
+## Development Commands
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Build TypeScript
-npm run build
+pnpm build
 
-# Run tests
-npm run test
+# Start development server (with hot reload)
+pnpm dev
+
+# Run unit tests
+pnpm test
+
+# Run Worker integration tests
+pnpm test:worker
+
+# Run all tests
+pnpm test:all
 
 # Run linting
-npm run lint
+pnpm eslint
 
-# Start development server (original Fastify)
-npm run serve
+# Deploy to Cloudflare Workers
+pnpm deploy
 ```
 
-## Testing
+## API Endpoints
 
-- **Framework**: Vitest
-- **Test Location**: `test/index.test.ts`
-- **HTML Fixtures**: `test/htmls/`
-- **Environment Variable**: Set `SUMMALY_ALLOW_PRIVATE_IP=true` for local testing
-- **Network Tests**: Skip with `SKIP_NETWORK_TEST=true`
+### GET /
 
-## Cloudflare Workers Migration Guide
+Main summarization endpoint.
 
-### Critical Changes Required
+**Query Parameters:**
 
-#### 1. Replace HTTP Client
+- `url` (required) - The URL to summarize
+- `lang` (optional) - Accept-Language header value
 
-The `got` library is NOT compatible with Cloudflare Workers. Replace with the native `fetch` API:
+**Response:** `SummalyResult` JSON object
 
-```typescript
-// ❌ BEFORE (Node.js with got)
-import got from 'got';
-const response = await got(url, { headers, timeout });
-
-// ✅ AFTER (Cloudflare Workers)
-const response = await fetch(url, {
-  headers,
-  signal: AbortSignal.timeout(timeoutMs),
-});
+```bash
+curl "https://your-worker.workers.dev/?url=https://example.com"
 ```
 
-#### 2. Remove Node.js Built-in Modules
+### GET /health
 
-These imports in `src/utils/got.ts` must be removed or replaced:
+Health check endpoint.
 
-```typescript
-// ❌ Remove these
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { readFileSync } from 'node:fs';
-import { Agent } from 'node:http';
+```bash
+curl "https://your-worker.workers.dev/health"
+# Response: {"status":"ok"}
 ```
 
-#### 3. Private IP Blocking
+### OPTIONS /
 
-Replace `private-ip` library with a custom implementation using `URL` parsing, as Workers don't have access to DNS resolution in the same way.
-
-#### 4. Character Encoding
-
-The `iconv-lite` library may need replacement. Consider using the `TextDecoder` API available in Workers:
-
-```typescript
-const decoder = new TextDecoder(encoding);
-const text = decoder.decode(buffer);
-```
-
-#### 5. Cheerio Compatibility
-
-`cheerio` should work in Workers, but verify the version. Use the latest version that supports ES modules.
-
-### Recommended Worker Structure
-
-```typescript
-// src/worker.ts
-export interface Env {
-  // Add any KV namespaces, D1 databases, or secrets here
-}
-
-export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
-    
-    if (url.pathname === '/' && request.method === 'GET') {
-      const targetUrl = url.searchParams.get('url');
-      const lang = url.searchParams.get('lang');
-      
-      if (!targetUrl) {
-        return Response.json({ error: 'url is required' }, { status: 400 });
-      }
-      
-      try {
-        const summary = await summaly(targetUrl, { lang });
-        return Response.json(summary);
-      } catch (error) {
-        return Response.json({ error: String(error) }, { status: 500 });
-      }
-    }
-    
-    return new Response('Not Found', { status: 404 });
-  },
-};
-```
-
-### Wrangler Configuration
-
-```jsonc
-// wrangler.jsonc
-{
-  "name": "worker-summaly",
-  "main": "src/worker.ts",
-  "compatibility_date": "2025-03-07",
-  "compatibility_flags": ["nodejs_compat"],
-  "observability": {
-    "enabled": true,
-    "head_sampling_rate": 1
-  }
-}
-```
-
-### Key API Differences
-
-| Feature | Node.js (Original) | Cloudflare Workers |
-| ------- | ------------------ | ------------------ |
-| HTTP Client | `got` | Native `fetch` |
-| Timeout | `got` timeout options | `AbortSignal.timeout()` |
-| File Reading | `fs.readFileSync` | Not available (embed at build time) |
-| HTTP Agent | Custom agents supported | Not applicable |
-| Private IP Check | `private-ip` package | Custom implementation or use CF security features |
-
-### Environment Variables
-
-For Workers, use `wrangler.jsonc` vars or secrets:
-
-```jsonc
-{
-  "vars": {
-    "BOT_USER_AGENT": "SummalyBot/6.0.0"
-  }
-}
-```
-
-### Response Headers
-
-Add appropriate CORS headers for API responses:
-
-```typescript
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
-```
-
-## Dependencies to Review for Workers Compatibility
-
-| Package | Status | Notes |
-| ------- | ------ | ----- |
-| `cheerio` | ✅ Compatible | Use latest ES module version |
-| `got` | ❌ Replace | Use native `fetch` |
-| `private-ip` | ❌ Replace | Custom implementation needed |
-| `iconv-lite` | ⚠️ Check | May need `TextDecoder` fallback |
-| `html-entities` | ✅ Compatible | Pure JavaScript |
-| `debug` | ⚠️ Check | Replace with `console.log` or remove |
+CORS preflight handler. Returns appropriate CORS headers.
 
 ## Type Definitions
 
@@ -259,9 +159,24 @@ interface Player {
 }
 ```
 
+### SummalyOptions
+
+```typescript
+interface SummalyOptions {
+  lang?: string | null;           // Accept-Language header
+  followRedirects?: boolean;      // Follow HTTP redirects (default: true)
+  plugins?: SummalyPlugin[];      // Custom plugins
+  userAgent?: string;             // Custom User-Agent
+  responseTimeout?: number;       // Response timeout in ms
+  operationTimeout?: number;      // Total operation timeout in ms
+  contentLengthLimit?: number;    // Max content length in bytes
+  contentLengthRequired?: boolean; // Require Content-Length header
+}
+```
+
 ## Plugin System
 
-Plugins follow this interface and are matched by URL pattern:
+Plugins extend summarization for specific domains:
 
 ```typescript
 interface SummalyPlugin {
@@ -270,14 +185,85 @@ interface SummalyPlugin {
 }
 ```
 
-Built-in plugins are registered in `src/plugins/index.ts`.
+Built-in plugins are registered in [src/plugins/index.ts](src/plugins/index.ts).
+
+## Testing
+
+### Test Infrastructure
+
+- **Framework**: Vitest with `@cloudflare/vitest-pool-workers`
+- **Unit Tests**: Run in Workers runtime using Miniflare
+- **Integration Tests**: Use Wrangler's `unstable_dev` for real Worker testing
+- **Fixtures**: Embedded in TypeScript (no file system access in Workers)
+
+### Running Tests
+
+```bash
+# Unit tests only
+pnpm test
+
+# Worker integration tests
+pnpm test:worker
+
+# All tests
+pnpm test:all
+
+# Watch mode
+pnpm test:watch
+```
+
+### Environment Variables for Tests
+
+- `SUMMALY_ALLOW_PRIVATE_IP=true` - Allow private IP addresses
+- `SKIP_NETWORK_TEST=true` - Skip tests requiring network access
+
+## Wrangler Configuration
+
+Configuration is in [wrangler.jsonc](wrangler.jsonc):
+
+```jsonc
+{
+  "name": "worker-summaly",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-01-07",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "placement": {
+    "mode": "smart"
+  }
+}
+```
+
+## Dependencies
+
+### Runtime Dependencies
+
+| Package | Purpose |
+| ------- | ------- |
+| `cheerio` | HTML parsing and DOM manipulation |
+| `escape-regexp` | Regular expression escaping |
+| `html-entities` | HTML entity encoding/decoding |
+
+### Development Dependencies
+
+| Package | Purpose |
+| ------- | ------- |
+| `@cloudflare/vitest-pool-workers` | Workers runtime for Vitest |
+| `@cloudflare/workers-types` | TypeScript types for Workers |
+| `@misskey-dev/eslint-plugin` | ESLint configuration |
+| `wrangler` | Cloudflare Workers CLI |
+| `vitest` | Test framework |
 
 ## Security Considerations
 
-1. **Private IP Blocking**: The original library blocks requests to private IPs. Implement equivalent protection in Workers.
-2. **Content-Length Limits**: Enforce `contentLengthLimit` (default 10MB) to prevent memory exhaustion.
-3. **Timeout Handling**: Use `AbortSignal.timeout()` for request timeouts.
-4. **Input Validation**: Always validate and sanitize the `url` query parameter.
+1. **Input Validation**: URL parameter is validated before processing
+2. **Content-Length Limits**: Configurable limit to prevent memory exhaustion
+3. **Timeout Handling**: Uses `AbortSignal.timeout()` for request timeouts
+4. **CORS**: Properly configured CORS headers for API responses
+5. **Error Handling**: Errors are caught and returned as JSON with appropriate status codes
 
 ## License
 
