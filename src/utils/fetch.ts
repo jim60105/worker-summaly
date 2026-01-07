@@ -25,7 +25,9 @@ export type FetchOptions = {
  * Make an HTTP request using native fetch API
  */
 export async function getResponse(args: FetchOptions): Promise<Response> {
-	const timeout = args.operationTimeout ?? DEFAULT_OPERATION_TIMEOUT;
+	// Use responseTimeout if provided, otherwise fall back to operationTimeout
+	// Note: Unlike got, fetch doesn't have separate timeouts for different phases
+	const timeout = args.responseTimeout ?? args.operationTimeout ?? DEFAULT_OPERATION_TIMEOUT;
 	
 	// Use AbortSignal.timeout() for timeout handling
 	const controller = new AbortController();
