@@ -6,7 +6,7 @@ import type { SummalyResult } from './summary.js';
  */
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface Env {
-	// 可選：未來可加入 KV、D1 等綁定用於快取
+	// Optional: Can add KV, D1 bindings for caching in the future
 	// CACHE: KVNamespace;
 }
 
@@ -98,7 +98,7 @@ export default {
 			try {
 				const result: SummalyResult = await summaly(targetUrl, {
 					lang,
-					// 可設定其他選項
+					// Additional options can be configured here
 				});
 
 				return jsonResponse(result);
@@ -116,7 +116,7 @@ export default {
 			}
 		}
 
-		// 404 for unknown paths
+		// Return 404 for unknown paths
 		return jsonResponse(
 			{ error: 'Not found' },
 			404,
