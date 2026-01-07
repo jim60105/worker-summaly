@@ -4,6 +4,10 @@ const asciiDecoder = new TextDecoder('ascii', { fatal: false, ignoreBOM: true })
 // Cache for TextDecoder instances to improve performance
 const decoderCache = new Map<string, TextDecoder>();
 
+// Encoding alias mappings (extracted as constants for maintainability)
+const JAPANESE_ENCODING_ALIASES = ['shift-jis', 'windows-31j', 'x-sjis', 'cp932'];
+const CHINESE_ENCODING_ALIASES = ['gb2312', 'gbk'];
+
 /**
  * Get or create a cached TextDecoder for the specified encoding
  * @param encoding Encoding name
@@ -74,13 +78,13 @@ function normalizeEncoding(encoding: string): string {
 	
 	// Handle Japanese encoding aliases
 	// TextDecoder supports 'shift-jis' but not 'cp932', 'windows-31j', etc.
-	if (['shift-jis', 'windows-31j', 'x-sjis', 'cp932'].includes(lower)) {
+	if (JAPANESE_ENCODING_ALIASES.includes(lower)) {
 		return 'shift-jis';
 	}
 	
 	// Handle Chinese encoding aliases
 	// 'gb2312' is an alias for 'gbk' in TextDecoder
-	if (['gb2312', 'gbk'].includes(lower)) {
+	if (CHINESE_ENCODING_ALIASES.includes(lower)) {
 		return 'gbk';
 	}
 	
@@ -97,9 +101,8 @@ function toEncoding(candidate: string): string | null {
 	const normalized = normalizeEncoding(candidate);
 	
 	try {
-		// Validate by attempting to create a TextDecoder
-		// This checks if the encoding is supported in the current environment
-		new TextDecoder(normalized);
+		// Validate by attempting to get decoder (uses cache if available)
+		getDecoder(normalized);
 		return normalized;
 	} catch {
 		return null;
