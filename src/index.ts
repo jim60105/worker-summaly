@@ -3,7 +3,6 @@
  * https://github.com/misskey-dev/summaly
  */
 
-import type { FastifyInstance } from 'fastify';
 import { SummalyResult } from '@/summary.js';
 import { SummalyPlugin as _SummalyPlugin } from '@/iplugin.js';
 import { general, type GeneralScrapingOptions } from '@/general.js';
@@ -109,37 +108,3 @@ export const summaly = async (url: string, options?: SummalyOptions): Promise<Su
 		url: actualUrl,
 	});
 };
-
-// eslint-disable-next-line import/no-default-export
-export default function (fastify: FastifyInstance, options: SummalyOptions, done: (err?: Error) => void) {
-	fastify.get<{
-		Querystring: {
-			url?: string;
-			lang?: string;
-		};
-	}>('/', async (req, reply) => {
-		const url = req.query.url as string;
-		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-		if (url == null) {
-			return reply.status(400).send({
-				error: 'url is required',
-			});
-		}
-
-		try {
-			const summary = await summaly(url, {
-				lang: req.query.lang as string,
-				followRedirects: false,
-				...options,
-			});
-
-			return summary;
-		} catch (e) {
-			return reply.status(500).send({
-				error: e,
-			});
-		}
-	});
-
-	done();
-}
