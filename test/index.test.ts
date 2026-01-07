@@ -1,40 +1,67 @@
 /**
- * Tests!
+ * Tests for Cloudflare Workers environment
  */
 
 'use strict';
 
 /* dependencies below */
 
-import fs, { readdirSync } from 'node:fs';
-import process from 'node:process';
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { Agent as httpAgent } from 'node:http';
-import { Agent as httpsAgent } from 'node:https';
 import { expect, test, describe, beforeEach, afterEach } from 'vitest';
-import fastify, { type FastifyInstance } from 'fastify';
 import { summaly } from '@/index.js';
 import { StatusError } from '@/utils/status-error.js';
-
-const _filename = fileURLToPath(import.meta.url);
-const _dirname = dirname(_filename);
+import { getHtmlFixture } from './fixtures/html.js';
+import { getOembedFixture } from './fixtures/oembed.js';
 
 /* settings below */
 
 Error.stackTraceLimit = Infinity;
 
-// During the test the env variable is set to test
-process.env.NODE_ENV = 'test';
-process.env.SUMMALY_ALLOW_PRIVATE_IP = 'true';
-
 const port = 3060;
 const host = `http://localhost:${port}`;
 
-// Display detail of unhandled promise rejection
-process.on('unhandledRejection', console.dir);
+// Mock fetch responses
+const mockResponses = new Map<string, Response>();
 
-let app: FastifyInstance | null = null;
+// Mock global fetch for testing
+const originalFetch = global.fetch;
+
+function mockFetch(url: string | URL | Request, init?: RequestInit): Promise<Response> {
+	const urlString = typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
+	const response = mockResponses.get(urlString);
+	if (response) {
+		return Promise.resolve(response.clone());
+	}
+	// Fall back to original fetch for unmocked requests
+	return originalFetch(url, init);
+}
+
+function setupMockResponse(url: string, body: string, headers: Record<string, string> = {}) {
+	const defaultHeaders = {
+		'content-length': String(Buffer.byteLength(body)),
+		'content-type': 'text/html',
+		...headers,
+	};
+	mockResponses.set(url, new Response(body, {
+		status: 200,
+		headers: defaultHeaders,
+	}));
+}
+
+function setupMockJsonResponse(url: string, data: unknown) {
+	const body = JSON.stringify(data);
+	const headers = {
+		'content-length': String(Buffer.byteLength(body)),
+		'content-type': 'application/json',
+	};
+	mockResponses.set(url, new Response(body, {
+		status: 200,
+		headers,
+	}));
+}
+
+function setupMockStatusResponse(url: string, status: number) {
+	mockResponses.set(url, new Response(null, { status }));
+}
 
 function skippableTest(name: string, fn: () => void) {
 	if (process.env.SKIP_NETWORK_TEST === 'true') {
@@ -46,28 +73,27 @@ function skippableTest(name: string, fn: () => void) {
 }
 
 beforeEach(() => {
-	// Allow private IPs by default, since a lot of the tests rely on old behvior
+	// Allow private IPs by default, since a lot of the tests rely on old behavior
 	process.env.SUMMALY_ALLOW_PRIVATE_IP = 'true';
+	// Clear mock responses
+	mockResponses.clear();
+	// Install mock fetch
+	global.fetch = mockFetch as typeof fetch;
 });
 
-afterEach(async () => {
-	if (app) {
-		await app.close();
-		app = null;
-	}
+afterEach(() => {
+	// Restore original fetch
+	global.fetch = originalFetch;
+	// Clear mock responses
+	mockResponses.clear();
 });
 
 /* tests below */
 
 test('basic', async () => {
-	app = fastify();
-	app.get('/', (request, reply) => {
-		const content = fs.readFileSync(_dirname + '/htmls/basic.html');
-		reply.header('content-length', content.length);
-		reply.header('content-type', 'text/html');
-		return reply.send(content);
-	});
-	await app.listen({ port });
+	const html = getHtmlFixture('basic.html');
+	setupMockResponse(host + '/', html);
+	
 	expect(await summaly(host)).toEqual({
 		title: 'KISS principle',
 		icon: null,
@@ -124,44 +150,26 @@ skippableTest('Stage Bye Stage', async () => {
 });
 
 test('faviconがHTML上で指定されていないが、ルートに存在する場合、正しく設定される', async () => {
-	app = fastify();
-	app.get('/', (request, reply) => {
-		const content = fs.readFileSync(_dirname + '/htmls/no-favicon.html');
-		reply.header('content-length', content.length);
-		reply.header('content-type', 'text/html');
-		return reply.send(content);
-	});
-	app.get('/favicon.ico', (_, reply) => reply.status(200).send());
-	await app.listen({ port });
+	const html = getHtmlFixture('no-favicon.html');
+	setupMockResponse(host + '/', html);
+	setupMockStatusResponse(host + '/favicon.ico', 200);
 
 	const summary = await summaly(host);
 	expect(summary.icon).toBe(`${host}/favicon.ico`);
 });
 
 test('faviconがHTML上で指定されていなくて、ルートにも存在しなかった場合 null になる', async () => {
-	app = fastify();
-	app.get('/', (request, reply) => {
-		const content = fs.readFileSync(_dirname + '/htmls/no-favicon.html');
-		reply.header('content-length', content.length);
-		reply.header('content-type', 'text/html');
-		return reply.send(content);
-	});
-	app.get('*', (_, reply) => reply.status(404).send());
-	await app.listen({ port });
+	const html = getHtmlFixture('no-favicon.html');
+	setupMockResponse(host + '/', html);
+	setupMockStatusResponse(host + '/favicon.ico', 404);
 
 	const summary = await summaly(host);
 	expect(summary.icon).toBe(null);
 });
 
 test('titleがcleanupされる', async () => {
-	app = fastify();
-	app.get('/', (request, reply) => {
-		const content = fs.readFileSync(_dirname + '/htmls/og-title.html');
-		reply.header('content-length', content.length);
-		reply.header('content-type', 'text/html');
-		return reply.send(content);
-	});
-	await app.listen({ port });
+	const html = getHtmlFixture('og-title.html');
+	setupMockResponse(host + '/', html);
 
 	const summary = await summaly(host);
 	expect(summary.title).toBe('Strawberry Pasta');
@@ -170,14 +178,17 @@ test('titleがcleanupされる', async () => {
 describe('Private IP blocking', () => {
 	beforeEach(() => {
 		process.env.SUMMALY_ALLOW_PRIVATE_IP = 'false';
-		app = fastify();
-		app.get('*', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/og-title.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		return app.listen({ port });
+		const html = getHtmlFixture('og-title.html');
+		server.use(
+			http.get(host + '/*', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 	});
 
 	test('private ipなサーバーの情報を取得できない', async () => {
@@ -189,14 +200,9 @@ describe('Private IP blocking', () => {
 		}
 	});
 
-	test('agentが指定されている場合はprivate ipを許可', async () => {
-		const summary = await summaly(host, {
-			agent: {
-				http: new httpAgent({ keepAlive: true }),
-				https: new httpsAgent({ keepAlive: true }),
-			},
-		});
-		expect(summary.title).toBe('Strawberry Pasta');
+	test.skip('agentが指定されている場合はprivate ipを許可', async () => {
+		// Note: Agent-based private IP override not applicable in Workers environment
+		// This test is skipped as the agent option is Node.js specific
 	});
 
 	test('agentが空のオブジェクトの場合はprivate ipを許可しない', async () => {
@@ -215,56 +221,68 @@ describe('Private IP blocking', () => {
 
 describe('OGP', () => {
 	test('title', async () => {
-		app = fastify();
-		app.get('*', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/og-title.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('og-title.html');
+		server.use(
+			http.get(host + '/*', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
 		const summary = await summaly(host);
 		expect(summary.title).toBe('Strawberry Pasta');
 	});
 
 	test('description', async () => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/og-description.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('og-description.html');
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
 		const summary = await summaly(host);
 		expect(summary.description).toBe('Strawberry Pasta');
 	});
 
 	test('site_name', async () => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/og-site_name.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('og-site_name.html');
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
 		const summary = await summaly(host);
 		expect(summary.sitename).toBe('Strawberry Pasta');
 	});
 
 	test('thumbnail', async () => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/og-image.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('og-image.html');
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
 		const summary = await summaly(host);
 		expect(summary.thumbnail).toBe('https://himasaku.net/himasaku.png');
@@ -273,56 +291,68 @@ describe('OGP', () => {
 
 describe('TwitterCard', () => {
 	test('title', async () => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/twitter-title.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('twitter-title.html');
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
 		const summary = await summaly(host);
 		expect(summary.title).toBe('Strawberry Pasta');
 	});
 
 	test('description', async () => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/twitter-description.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('twitter-description.html');
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
 		const summary = await summaly(host);
 		expect(summary.description).toBe('Strawberry Pasta');
 	});
 
 	test('thumbnail', async () => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/twitter-image.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('twitter-image.html');
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
 		const summary = await summaly(host);
 		expect(summary.thumbnail).toBe('https://himasaku.net/himasaku.png');
 	});
 
 	test('Player detection - PeerTube:video => video', async () => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/player-peertube-video.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('player-peertube-video.html');
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
 		const summary = await summaly(host);
 		expect(summary.player.url).toBe('https://example.com/embedurl');
@@ -330,14 +360,17 @@ describe('TwitterCard', () => {
 	});
 
 	test('Player detection - Pleroma:video => video', async () => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/player-pleroma-video.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('player-pleroma-video.html');
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
 		const summary = await summaly(host);
 		expect(summary.player.url).toBe('https://example.com/embedurl');
@@ -345,14 +378,17 @@ describe('TwitterCard', () => {
 	});
 
 	test('Player detection - Pleroma:image => image', async () => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/player-pleroma-image.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('player-pleroma-image.html');
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
 		const summary = await summaly(host);
 		expect(summary.thumbnail).toBe('https://example.com/imageurl');
@@ -360,33 +396,55 @@ describe('TwitterCard', () => {
 });
 
 describe('oEmbed', () => {
-	const setUpFastify = async (oEmbedPath: string, htmlPath = 'htmls/oembed.html') => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			const content = fs.readFileSync(new URL(htmlPath, import.meta.url));
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		app.get('/oembed.json', (request, reply) => {
-			const content = fs.readFileSync(new URL(oEmbedPath, new URL('oembed/', import.meta.url)));
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'application/json');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+	const setupOembed = (oEmbedPath: string, htmlFixture = 'oembed.html') => {
+		const html = getHtmlFixture(htmlFixture);
+		const oembedData = getOembedFixture(oEmbedPath);
+		
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+			http.get(host + '/oembed.json', () => {
+				const jsonStr = JSON.stringify(oembedData);
+				return HttpResponse.json(oembedData, {
+					headers: {
+						'content-length': String(Buffer.byteLength(jsonStr)),
+						'content-type': 'application/json',
+					},
+				});
+			}),
+		);
 	};
 
-	for (const filename of readdirSync(new URL('oembed/invalid', import.meta.url))) {
-		test(`Invalidity test: ${filename}`, async () => {
-			await setUpFastify(`invalid/${filename}`);
+	const invalidOembedFiles = [
+		'invalid/oembed-child-iframe.json',
+		'invalid/oembed-double-iframes.json',
+		'invalid/oembed-future.json',
+		'invalid/oembed-insecure.json',
+		'invalid/oembed-invalid-height.json',
+		'invalid/oembed-no-height.json',
+		'invalid/oembed-no-version.json',
+		'invalid/oembed-old.json',
+		'invalid/oembed-photo.json',
+		'invalid/oembed-too-powerful.json',
+		'invalid/oembed-too-powerful2.json',
+	];
+
+	for (const filename of invalidOembedFiles) {
+		test(`Invalidity test: ${filename.replace('invalid/', '')}`, async () => {
+			setupOembed(filename);
 			const summary = await summaly(host);
 			expect(summary.player.url).toBe(null);
 		});
 	}
 
 	test('basic properties', async () => {
-		await setUpFastify('oembed.json');
+		setupOembed('oembed.json');
 		const summary = await summaly(host);
 		expect(summary.player.url).toBe('https://example.com/');
 		expect(summary.player.width).toBe(500);
@@ -394,7 +452,7 @@ describe('oEmbed', () => {
 	});
 
 	test('type: video', async () => {
-		await setUpFastify('oembed-video.json');
+		setupOembed('oembed-video.json');
 		const summary = await summaly(host);
 		expect(summary.player.url).toBe('https://example.com/');
 		expect(summary.player.width).toBe(500);
@@ -402,33 +460,33 @@ describe('oEmbed', () => {
 	});
 
 	test('max height', async () => {
-		await setUpFastify('oembed-too-tall.json');
+		setupOembed('oembed-too-tall.json');
 		const summary = await summaly(host);
 		expect(summary.player.height).toBe(1024);
 	});
 
 	test('children are ignored', async () => {
-		await setUpFastify('oembed-iframe-child.json');
+		setupOembed('oembed-iframe-child.json');
 		const summary = await summaly(host);
 		expect(summary.player.url).toBe('https://example.com/');
 	});
 
 	test('allows fullscreen', async () => {
-		await setUpFastify('oembed-allow-fullscreen.json');
+		setupOembed('oembed-allow-fullscreen.json');
 		const summary = await summaly(host);
 		expect(summary.player.url).toBe('https://example.com/');
 		expect(summary.player.allow).toStrictEqual(['fullscreen']);
 	});
 
 	test('allows legacy allowfullscreen', async () => {
-		await setUpFastify('oembed-allow-fullscreen-legacy.json');
+		setupOembed('oembed-allow-fullscreen-legacy.json');
 		const summary = await summaly(host);
 		expect(summary.player.url).toBe('https://example.com/');
 		expect(summary.player.allow).toStrictEqual(['fullscreen']);
 	});
 
 	test('allows safelisted permissions', async () => {
-		await setUpFastify('oembed-allow-safelisted-permissions.json');
+		setupOembed('oembed-allow-safelisted-permissions.json');
 		const summary = await summaly(host);
 		expect(summary.player.url).toBe('https://example.com/');
 		expect(summary.player.allow).toStrictEqual([
@@ -438,55 +496,55 @@ describe('oEmbed', () => {
 	});
 
 	test('ignores rare permissions', async () => {
-		await setUpFastify('oembed-ignore-rare-permissions.json');
+		setupOembed('oembed-ignore-rare-permissions.json');
 		const summary = await summaly(host);
 		expect(summary.player.url).toBe('https://example.com/');
 		expect(summary.player.allow).toStrictEqual(['autoplay']);
 	});
 
 	test('oEmbed with relative path', async () => {
-		await setUpFastify('oembed.json', 'htmls/oembed-relative.html');
+		setupOembed('oembed.json', 'oembed-relative.html');
 		const summary = await summaly(host);
 		expect(summary.player.url).toBe('https://example.com/');
 	});
 
 	test('oEmbed with nonexistent path', async () => {
-		await setUpFastify('oembed.json', 'htmls/oembed-nonexistent-path.html');
+		setupOembed('oembed.json', 'oembed-nonexistent-path.html');
 		const summary = await summaly(host);
 		expect(summary.player.url).toBe(null);
 		expect(summary.description).toBe('nonexistent');
 	});
 
 	test('oEmbed with wrong path', async () => {
-		await setUpFastify('oembed.json', 'htmls/oembed-wrong-path.html');
+		setupOembed('oembed.json', 'oembed-wrong-path.html');
 		const summary = await summaly(host);
 		expect(summary.player.url).toBe(null);
 		expect(summary.description).toBe('wrong url');
 	});
 
 	test('oEmbed with OpenGraph', async () => {
-		await setUpFastify('oembed.json', 'htmls/oembed-and-og.html');
+		setupOembed('oembed.json', 'oembed-and-og.html');
 		const summary = await summaly(host);
 		expect(summary.player.url).toBe('https://example.com/');
 		expect(summary.description).toBe('blobcats rule the world');
 	});
 
 	test('Invalid oEmbed with valid OpenGraph', async () => {
-		await setUpFastify('invalid/oembed-insecure.json', 'htmls/oembed-and-og.html');
+		setupOembed('invalid/oembed-insecure.json', 'oembed-and-og.html');
 		const summary = await summaly(host);
 		expect(summary.player.url).toBe(null);
 		expect(summary.description).toBe('blobcats rule the world');
 	});
 
 	test('oEmbed with og:video', async () => {
-		await setUpFastify('oembed.json', 'htmls/oembed-and-og-video.html');
+		setupOembed('oembed.json', 'oembed-and-og-video.html');
 		const summary = await summaly(host);
 		expect(summary.player.url).toBe('https://example.com/');
 		expect(summary.player.allow).toStrictEqual([]);
 	});
 
 	test('width: 100%', async () => {
-		await setUpFastify('oembed-percentage-width.json');
+		setupOembed('oembed-percentage-width.json');
 		const summary = await summaly(host);
 		expect(summary.player.width).toBe(null);
 		expect(summary.player.height).toBe(300);
@@ -495,28 +553,34 @@ describe('oEmbed', () => {
 
 describe('ActivityPub', () => {
 	test('Basic', async () => {
-		app = fastify();
-		app.get('*', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/activitypub.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('activitypub.html');
+		server.use(
+			http.get(host + '/*', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
 		const summary = await summaly(host);
 		expect(summary.activityPub).toBe('https://misskey.test/notes/abcdefg');
 	});
 
 	test('Null', async () => {
-		app = fastify();
-		app.get('*', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/basic.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('basic.html');
+		server.use(
+			http.get(host + '/*', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
 		const summary = await summaly(host);
 		expect(summary.activityPub).toBe(null);
@@ -525,28 +589,34 @@ describe('ActivityPub', () => {
 
 describe('Fediverse Creator', () => {
 	test('Basic', async () => {
-		app = fastify();
-		app.get('*', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/fediverse-creator.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('fediverse-creator.html');
+		server.use(
+			http.get(host + '/*', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
 		const summary = await summaly(host);
 		expect(summary.fediverseCreator).toBe('@test@example.com');
 	});
 
 	test('Null', async () => {
-		app = fastify();
-		app.get('*', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/basic.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('basic.html');
+		server.use(
+			http.get(host + '/*', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
 		const summary = await summaly(host);
 		expect(summary.fediverseCreator).toBeNull();
@@ -555,93 +625,114 @@ describe('Fediverse Creator', () => {
 
 describe('sensitive', () => {
 	test('default', async () => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/basic.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('basic.html');
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 		expect((await summaly(host)).sensitive).toBe(false);
 	});
 
 	test('mixi:content-rating 1', async () => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/mixi-sensitive.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('mixi-sensitive.html');
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 		expect((await summaly(host)).sensitive).toBe(true);
 	});
 
 	test('meta rating adult', async () => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/meta-adult-sensitive.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('meta-adult-sensitive.html');
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 		expect((await summaly(host)).sensitive).toBe(true);
 	});
 
 	test('meta rating rta', async () => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/meta-rta-sensitive.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('meta-rta-sensitive.html');
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 		expect((await summaly(host)).sensitive).toBe(true);
 	});
 
 	test('HTTP Header rating adult', async () => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/basic.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			reply.header('rating', 'adult');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('basic.html');
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+						'rating': 'adult',
+					},
+				});
+			}),
+		);
 		expect((await summaly(host)).sensitive).toBe(true);
 	});
 
 	test('HTTP Header rating rta', async () => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			const content = fs.readFileSync(_dirname + '/htmls/basic.html');
-			reply.header('content-length', content.length);
-			reply.header('content-type', 'text/html');
-			reply.header('rating', 'RTA-5042-1996-1400-1577-RTA');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('basic.html');
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+						'rating': 'RTA-5042-1996-1400-1577-RTA',
+					},
+				});
+			}),
+		);
 		expect((await summaly(host)).sensitive).toBe(true);
 	});
 });
 
 describe('UserAgent', () => {
 	test('UA設定が反映されていること', async () => {
-		const content = fs.readFileSync(_dirname + '/htmls/basic.html');
+		const html = getHtmlFixture('basic.html');
 		let ua: string | undefined = undefined;
 
-		app = fastify();
-		app.get('/', (request, reply) => {
-			reply.header('content-length', content.byteLength);
-			reply.header('content-type', 'text/html');
-			ua = request.headers['user-agent'];
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		server.use(
+			http.get(host + '/', ({ request }) => {
+				ua = request.headers.get('user-agent') || undefined;
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(Buffer.byteLength(html)),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 		await summaly(host, { userAgent: 'test-ua' });
 
 		expect(ua).toBe('test-ua');
@@ -650,83 +741,109 @@ describe('UserAgent', () => {
 
 describe('content-length limit', () => {
 	test('content-lengthの上限以内であればエラーが起こらないこと', async () => {
-		const content = fs.readFileSync(_dirname + '/htmls/basic.html');
+		const html = getHtmlFixture('basic.html');
+		const contentLength = Buffer.byteLength(html);
 
-		app = fastify();
-		app.get('/', (request, reply) => {
-			reply.header('content-length', content.byteLength);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(contentLength),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
-		expect(await summaly(host, { contentLengthLimit: content.byteLength })).toBeDefined();
+		expect(await summaly(host, { contentLengthLimit: contentLength })).toBeDefined();
 	});
 
 	test('content-lengthの上限を超えているとエラーになる事', async () => {
-		const content = fs.readFileSync(_dirname + '/htmls/basic.html');
+		const html = getHtmlFixture('basic.html');
+		const contentLength = Buffer.byteLength(html);
 
-		app = fastify();
-		app.get('/', (request, reply) => {
-			reply.header('content-length', content.byteLength);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(contentLength),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
-		await expect(summaly(host, { contentLengthLimit: content.byteLength - 1 })).rejects.toThrow();
+		await expect(summaly(host, { contentLengthLimit: contentLength - 1 })).rejects.toThrow();
 	});
 });
 
 describe('content-length required', () => {
 	test('[オプション有効化時] content-lengthが返された場合はエラーとならないこと', async () => {
-		const content = fs.readFileSync(_dirname + '/htmls/basic.html');
+		const html = getHtmlFixture('basic.html');
+		const contentLength = Buffer.byteLength(html);
 
-		app = fastify();
-		app.get('/', (request, reply) => {
-			reply.header('content-length', content.byteLength);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(contentLength),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
-		expect(await summaly(host, { contentLengthRequired: true, contentLengthLimit: content.byteLength })).toBeDefined();
+		expect(await summaly(host, { contentLengthRequired: true, contentLengthLimit: contentLength })).toBeDefined();
 	});
 
 	test('[オプション有効化時] content-lengthが返されない場合はエラーとなること', async () => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			reply.header('content-type', 'text/html');
-			// streamで渡さないとcontent-lengthを自動で設定されてしまう
-			return reply.send(fs.createReadStream(_dirname + '/htmls/basic.html'));
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('basic.html');
+
+		server.use(
+			http.get(host + '/', () => {
+				// Don't include content-length header to simulate streaming response
+				return HttpResponse.html(html, {
+					headers: {
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
 		await expect(summaly(host, { contentLengthRequired: true })).rejects.toThrow();
 	});
 
 	test('[オプション無効化時] content-lengthが返された場合はエラーとならないこと', async () => {
-		const content = fs.readFileSync(_dirname + '/htmls/basic.html');
+		const html = getHtmlFixture('basic.html');
+		const contentLength = Buffer.byteLength(html);
 
-		app = fastify();
-		app.get('/', (request, reply) => {
-			reply.header('content-length', content.byteLength);
-			reply.header('content-type', 'text/html');
-			return reply.send(content);
-		});
-		await app.listen({ port });
+		server.use(
+			http.get(host + '/', () => {
+				return HttpResponse.html(html, {
+					headers: {
+						'content-length': String(contentLength),
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
-		expect(await summaly(host, { contentLengthRequired: false, contentLengthLimit: content.byteLength })).toBeDefined();
+		expect(await summaly(host, { contentLengthRequired: false, contentLengthLimit: contentLength })).toBeDefined();
 	});
 
 	test('[オプション無効化時] content-lengthが返されなくてもエラーとならないこと', async () => {
-		app = fastify();
-		app.get('/', (request, reply) => {
-			reply.header('content-type', 'text/html');
-			// streamで渡さないとcontent-lengthを自動で設定されてしまう
-			return reply.send(fs.createReadStream(_dirname + '/htmls/basic.html'));
-		});
-		await app.listen({ port });
+		const html = getHtmlFixture('basic.html');
+
+		server.use(
+			http.get(host + '/', () => {
+				// Don't include content-length header
+				return HttpResponse.html(html, {
+					headers: {
+						'content-type': 'text/html',
+					},
+				});
+			}),
+		);
 
 		expect(await summaly(host, { contentLengthRequired: false })).toBeDefined();
 	});
