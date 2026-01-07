@@ -1,5 +1,5 @@
 import debug from 'debug';
-import { get } from '@/utils/got.js';
+import { get } from '@/utils/fetch.js';
 import summary from '@/summary.js';
 import { clip } from '@/utils/clip.js';
 
