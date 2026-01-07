@@ -40,7 +40,6 @@
     "eslint-plugin-import": "^2.32.0",
     "fastify": "^5.6.1",
     "fastify-cli": "^7.4.0",
-    "msw": "^2.12.7",
     "tsc-alias": "^1.8.16",
     "typescript": "5.9.3",
     "vitest": "^3.2.4",
