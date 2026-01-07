@@ -29,7 +29,7 @@ export async function getResponse(args: FetchOptions): Promise<Response> {
 	// Note: Unlike got, fetch doesn't have separate timeouts for different phases
 	const timeout = args.responseTimeout ?? args.operationTimeout ?? DEFAULT_OPERATION_TIMEOUT;
 	
-	// Use AbortSignal.timeout() for timeout handling
+	// Use setTimeout with AbortController for timeout handling
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), timeout);
 	
