@@ -385,10 +385,11 @@ export const htmlFixtures = {
 <html>
 	<head>
 		<meta charset="utf-8">
-		<meta property="og:title" content="測試文章標題">
-		<meta property="og:description" content="測試文章內容描述">
-		<meta property="og:image" content="https://example.com/thumbnail.jpg">
-		<title>測試文章標題 - 巴哈姆特</title>
+		<meta property="og:title" content="【心得】分享MHR狩獵笛旋律持續時間表 @魔物獵人 系列 哈啦板 - 巴哈姆特">
+		<meta property="og:description" content="安安，我是PUMA很忙 因為最近在狩獵的時候我的旋律全上強迫症發作 雖然目前三音可以全上旋律 不過有部分的旋律持續時間不大一樣 所以就跑去訓練場測試每種旋律的持續時間 順便分享給大家">
+		<meta property="og:image" content="https://truth.bahamut.com.tw/s01/202207/9dc99bd8489e538f05b65554d31a9679.JPG">
+		<meta property="og:site_name" content="巴哈姆特電玩資訊站">
+		<title>【心得】分享MHR狩獵笛旋律持續時間表 @魔物獵人 系列 哈啦板 - 巴哈姆特</title>
 	</head>
 	<body>
 		<div>文章內容</div>
@@ -399,11 +400,12 @@ export const htmlFixtures = {
 <html>
 	<head>
 		<meta charset="utf-8">
-		<meta property="og:title" content="成人內容標題">
-		<meta property="og:description" content="成人內容描述">
-		<meta property="og:image" content="https://example.com/adult.jpg">
+		<meta property="og:title" content="【討論】R-18 討論串 @某板 哈啦板 - 巴哈姆特">
+		<meta property="og:description" content="This is an adult content discussion thread">
+		<meta property="og:image" content="https://truth.bahamut.com.tw/s01/202207/example.JPG">
+		<meta property="og:site_name" content="巴哈姆特電玩資訊站">
 		<meta name="rating" content="adult">
-		<title>成人內容標題 - 巴哈姆特</title>
+		<title>【討論】R-18 討論串 @某板 哈啦板 - 巴哈姆特</title>
 	</head>
 	<body>
 		<div>成人內容</div>

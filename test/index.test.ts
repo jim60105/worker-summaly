@@ -587,55 +587,56 @@ describe('PTT Plugin', () => {
 describe('Bahamut Plugin', () => {
 	test('Bahamut forum URL matching - C.php', async () => {
 		const html = getHtmlFixture('bahamut-basic.html');
-		setupMockResponse('https://forum.gamer.com.tw/C.php?bsn=60076&snA=12345', html);
+		setupMockResponse('https://forum.gamer.com.tw/C.php?bsn=5786&snA=160982', html);
 
-		const result = await summaly('https://forum.gamer.com.tw/C.php?bsn=60076&snA=12345', {
+		const result = await summaly('https://forum.gamer.com.tw/C.php?bsn=5786&snA=160982', {
 			contentLengthLimit: 10 * 1024 * 1024,
 		});
 
 		expect(result).toBeDefined();
-		expect(result.title).toBe('測試文章標題');
-		expect(result.description).toBe('測試文章內容描述');
-		expect(result.sitename).toBe('巴哈姆特');
+		expect(result.title).toBe('【心得】分享MHR狩獵笛旋律持續時間表 @魔物獵人 系列 哈啦板 - 巴哈姆特');
+		expect(result.description).toContain('安安，我是PUMA很忙');
+		expect(result.sitename).toBe('巴哈姆特電玩資訊站');
 		expect(result.icon).toBe('https://i2.bahamut.com.tw/favicon.ico');
-		expect(result.thumbnail).toBe('https://example.com/thumbnail.jpg');
+		expect(result.thumbnail).toBe('https://truth.bahamut.com.tw/s01/202207/9dc99bd8489e538f05b65554d31a9679.JPG');
+		expect(result.sensitive).toBe(false);
 	});
 
 	test('Bahamut forum URL matching - Co.php', async () => {
 		const html = getHtmlFixture('bahamut-basic.html');
-		setupMockResponse('https://forum.gamer.com.tw/Co.php?bsn=60076&sn=12345', html);
+		setupMockResponse('https://forum.gamer.com.tw/Co.php?bsn=5786&sn=12345', html);
 
-		const result = await summaly('https://forum.gamer.com.tw/Co.php?bsn=60076&sn=12345', {
+		const result = await summaly('https://forum.gamer.com.tw/Co.php?bsn=5786&sn=12345', {
 			contentLengthLimit: 10 * 1024 * 1024,
 		});
 
 		expect(result).toBeDefined();
-		expect(result.title).toBe('測試文章標題');
+		expect(result.title).toBe('【心得】分享MHR狩獵笛旋律持續時間表 @魔物獵人 系列 哈啦板 - 巴哈姆特');
 	});
 
 	test('Bahamut mobile URL normalization', async () => {
 		const html = getHtmlFixture('bahamut-basic.html');
 		// Mock the desktop version URL since plugin normalizes mobile to desktop
-		setupMockResponse('https://forum.gamer.com.tw/C.php?bsn=60076&snA=12345', html);
+		setupMockResponse('https://forum.gamer.com.tw/C.php?bsn=5786&snA=160982', html);
 
-		const result = await summaly('https://m.gamer.com.tw/forum/C.php?bsn=60076&snA=12345', {
+		const result = await summaly('https://m.gamer.com.tw/forum/C.php?bsn=5786&snA=160982', {
 			contentLengthLimit: 10 * 1024 * 1024,
 		});
 
 		expect(result).toBeDefined();
-		expect(result.title).toBe('測試文章標題');
+		expect(result.title).toBe('【心得】分享MHR狩獵笛旋律持續時間表 @魔物獵人 系列 哈啦板 - 巴哈姆特');
 	});
 
 	test('Bahamut marks adult content as sensitive', async () => {
 		const html = getHtmlFixture('bahamut-adult.html');
-		setupMockResponse('https://forum.gamer.com.tw/C.php?bsn=60076&snA=99999', html);
+		setupMockResponse('https://forum.gamer.com.tw/C.php?bsn=12345&snA=99999', html);
 
-		const result = await summaly('https://forum.gamer.com.tw/C.php?bsn=60076&snA=99999', {
+		const result = await summaly('https://forum.gamer.com.tw/C.php?bsn=12345&snA=99999', {
 			contentLengthLimit: 10 * 1024 * 1024,
 		});
 
 		expect(result).toBeDefined();
-		expect(result.title).toBe('成人內容標題');
+		expect(result.title).toBe('【討論】R-18 討論串 @某板 哈啦板 - 巴哈姆特');
 		expect(result.sensitive).toBe(true);
 	});
 });
