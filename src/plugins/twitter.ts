@@ -1,4 +1,4 @@
-import type Summary from '@/summary.js';
+import summary from '@/summary.js';
 import { get } from '@/utils/fetch.js';
 import { clip } from '@/utils/clip.js';
 
@@ -59,7 +59,7 @@ export function test(url: URL): boolean {
 		/^\/[A-Za-z0-9_]{1,15}\/status\/\d+/.test(url.pathname);
 }
 
-function buildSummary(tweet: FxTwitterResponse['tweet']): Summary {
+function buildSummary(tweet: FxTwitterResponse['tweet']): summary {
 	// Handle thumbnail: prioritize mosaic (multi-photo composition) or first photo
 	let thumbnail: string | null = null;
 	if (tweet.media?.mosaic?.type === 'mosaic_photo') {
@@ -80,7 +80,7 @@ function buildSummary(tweet: FxTwitterResponse['tweet']): Summary {
 	};
 }
 
-function buildSummaryFromVx(data: VxTwitterResponse): Summary {
+function buildSummaryFromVx(data: VxTwitterResponse): summary {
 	// Handle thumbnail: use combinedMediaUrl or first mediaURL
 	let thumbnail: string | null = null;
 	if (data.combinedMediaUrl) {
@@ -101,7 +101,7 @@ function buildSummaryFromVx(data: VxTwitterResponse): Summary {
 	};
 }
 
-export async function summarize(url: URL): Promise<Summary | null> {
+export async function summarize(url: URL): Promise<summary | null> {
 	// 1. Parse tweet ID from URL
 	const pathMatch = url.pathname.match(/\/[A-Za-z0-9_]+\/status\/(\d+)/);
 	if (!pathMatch) return null;
