@@ -46,14 +46,14 @@ function buildSummary($: cheerio.CheerioAPI): Summary {
 	const contentHtml = $('.text_holder').html() || '';
 	const description = sanitizeHtml(contentHtml);
 	
-	// Extract images
-	const contentRawIndex = scriptContent.indexOf('content_raw');
+	// Extract images from content_raw in JSON
 	let thumbnail: string | null = null;
-	if (contentRawIndex !== -1) {
-		const images = scriptContent.slice(contentRawIndex)
-			.match(/https:\/\/images\.plurk\.com\/[^\\"\s]+/g);
-		if (images && images.length > 0) {
-			thumbnail = images[0];
+	const contentRawMatch = scriptContent.match(/"content_raw":\s*"([^"]+)"/);
+	if (contentRawMatch) {
+		const contentRaw = contentRawMatch[1];
+		const imageMatch = contentRaw.match(/https:\/\/images\.plurk\.com\/[^\s]+/);
+		if (imageMatch) {
+			thumbnail = imageMatch[0];
 		}
 	}
 	
@@ -70,14 +70,9 @@ function buildSummary($: cheerio.CheerioAPI): Summary {
 }
 
 function sanitizeHtml(input: string): string {
-	// Remove HTML tags, keep line breaks
-	let result = input;
-	let previous: string;
-	do {
-		previous = result;
-		result = result
-			.replace(/<br\s*\/?>/gi, '\n')
-			.replace(/<[^>]+>/g, '');
-	} while (result !== previous);
-	return result.trim();
+	// Remove HTML tags, convert <br> to newlines
+	return input
+		.replace(/<br\s*\/?>/gi, '\n')
+		.replace(/<[^>]+>/g, '')
+		.trim();
 }

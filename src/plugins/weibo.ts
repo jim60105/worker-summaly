@@ -97,7 +97,7 @@ function buildSummary(status: WeiboStatusResponse['data']): Summary {
 function proxyWeiboImage(url: string): string | null {
 	// Original format: https://wx1.sinaimg.cn/large/xxx.jpg
 	// Target format: https://{proxy}/?url={encoded_url}
-	const match = url.match(/https:\/\/(\w+)\.sinaimg\.cn\/(.+)/);
+	const match = url.match(/https:\/\/([a-zA-Z0-9-]+)\.sinaimg\.cn\/(.+)/);
 	if (!match) return null;
 	
 	const [, subdomain, path] = match;
