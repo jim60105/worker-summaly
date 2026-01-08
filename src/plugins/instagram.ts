@@ -7,45 +7,29 @@ export function test(url: URL): boolean {
 	if (hostname !== 'www.instagram.com' && hostname !== 'instagram.com') {
 		return false;
 	}
-	// 匹配貼文和 Reels
-	// /p/{shortcode}/ - 一般貼文
-	// /reel/{shortcode}/ - Reels
-	// /{username}/p/{shortcode}/ - 用戶貼文
-	// /{username}/reel/{shortcode}/ - 用戶 Reels
+	// Match posts and Reels
+	// /p/{shortcode}/ - regular post
+	// /reel/{shortcode}/ - reel
+	// /{username}/p/{shortcode}/ - user post
+	// /{username}/reel/{shortcode}/ - user reel
 	return /^\/([\w.]+\/)?(p|reel)\/[a-zA-Z0-9_-]+\/?$/.test(url.pathname);
-}
+} 
 
 export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promise<Summary | null> {
-	// 提取貼文 shortcode
-	const match = url.pathname.match(/\/(p|reel)\/([a-zA-Z0-9_-]+)/);
-	if (!match) return null;
-	
-	const [, type, shortcode] = match;
-	
-	// 嘗試使用 ddinstagram
+	// Instagram cannot currently be scraped directly because it requires login or complex authentication
+	// Third-party services (ddinstagram, instagramez) are no longer available
+	// The GraphQL API requires a valid authentication token
+	// Fallback to using `general()` to attempt extracting available meta tags
+
 	try {
-		const ddUrl = new URL(`https://www.ddinstagram.com/${type}/${shortcode}/`);
-		const result = await general(ddUrl, opts);
-		if (result && result.title) {
-			// 修正 sitename
+		const result = await general(url, opts);
+		if (result) {
+			// Force sitename to 'Instagram'
 			result.sitename = 'Instagram';
-			return result;
 		}
-	} catch {
-		// ddinstagram 失敗，嘗試備用服務
+		return result;
+	} catch (error) {
+		console.error('Instagram plugin error:', error);
+		return null;
 	}
-	
-	// 備用：嘗試 instagramez
-	try {
-		const ezUrl = new URL(`https://www.instagramez.com/${type}/${shortcode}/`);
-		const result = await general(ezUrl, opts);
-		if (result && result.title) {
-			result.sitename = 'Instagram';
-			return result;
-		}
-	} catch {
-		// 所有服務都失敗
-	}
-	
-	return null;
 }
