@@ -553,18 +553,24 @@ describe('PChome 24h Plugin', () => {
 	const descApiUrl = `https://ecapi-cdn.pchome.com.tw/cdn/ecshop/prodapi/v2/prod/${productId}/desc&fields=Meta,SloganInfo&_callback=jsonp_desc`;
 
 	test('URL matching - valid product URL', async () => {
-		const basicResponse = `jsonp_prod({
-			"Id": "${productId}",
-			"Name": "\\u5546\\u54c1\\u540d\\u7a31",
-			"Nick": "<span>\\u7c21\\u77ed\\u540d\\u7a31</span>",
-			"Price": { "P": 1990 },
-			"Pic": { "B": "/items/DYAJC9A900DPLRD/000001.jpg" }
-		})`;
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "\\u5546\\u54c1\\u540d\\u7a31",
+				"Nick": "<span>\\u7c21\\u77ed\\u540d\\u7a31</span>",
+				"Price": { "P": 1990 },
+				"Pic": { "B": "/items/DYAJC9A900DPLRD/000001.jpg" }
+			}
+		});}catch(e){}`;
 		
-		const descResponse = `jsonp_desc({
-			"BrandNames": ["\\u54c1\\u724c\\u540d"],
-			"SloganInfo": ["\\u6a19\\u8a9e1", "\\u6a19\\u8a9e2"]
-		})`;
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": ["\\u54c1\\u724c\\u540d"]
+				},
+				"SloganInfo": ["\\u6a19\\u8a9e1", "\\u6a19\\u8a9e2"]
+			}
+		});}catch(e){}`;
 
 		mockResponses.set(basicApiUrl, new Response(basicResponse, {
 			status: 200,
@@ -595,18 +601,24 @@ describe('PChome 24h Plugin', () => {
 	});
 
 	test('JSONP parsing', async () => {
-		const basicResponse = `jsonp_prod({
-			"Id": "${productId}",
-			"Name": "Test Product",
-			"Nick": "Short Name",
-			"Price": { "P": 999 },
-			"Pic": { "B": "/test.jpg" }
-		})`;
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "Test Product",
+				"Nick": "Short Name",
+				"Price": { "P": 999 },
+				"Pic": { "B": "/test.jpg" }
+			}
+		});}catch(e){}`;
 		
-		const descResponse = `jsonp_desc({
-			"BrandNames": ["TestBrand"],
-			"SloganInfo": ["Test Slogan"]
-		})`;
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": ["TestBrand"]
+				},
+				"SloganInfo": ["Test Slogan"]
+			}
+		});}catch(e){}`;
 
 		mockResponses.set(basicApiUrl, new Response(basicResponse, {
 			status: 200,
@@ -633,18 +645,24 @@ describe('PChome 24h Plugin', () => {
 	});
 
 	test('Unicode decoding', async () => {
-		const basicResponse = `jsonp_prod({
-			"Id": "${productId}",
-			"Name": "\\u53f0\\u7063\\u5546\\u54c1",
-			"Nick": "\\u53f0\\u7063",
-			"Price": { "P": 1000 },
-			"Pic": { "B": "/test.jpg" }
-		})`;
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "\\u53f0\\u7063\\u5546\\u54c1",
+				"Nick": "\\u53f0\\u7063",
+				"Price": { "P": 1000 },
+				"Pic": { "B": "/test.jpg" }
+			}
+		});}catch(e){}`;
 		
-		const descResponse = `jsonp_desc({
-			"BrandNames": ["\\u53f0\\u7063\\u54c1\\u724c"],
-			"SloganInfo": ["\\u9ad8\\u54c1\\u8cea"]
-		})`;
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": ["\\u53f0\\u7063\\u54c1\\u724c"]
+				},
+				"SloganInfo": ["\\u9ad8\\u54c1\\u8cea"]
+			}
+		});}catch(e){}`;
 
 		mockResponses.set(basicApiUrl, new Response(basicResponse, {
 			status: 200,
@@ -670,18 +688,24 @@ describe('PChome 24h Plugin', () => {
 	});
 
 	test('HTML content cleanup in Nick field', async () => {
-		const basicResponse = `jsonp_prod({
-			"Id": "${productId}",
-			"Name": "Full Name",
-			"Nick": "<div><span>Clean <strong>Name</strong></span></div>",
-			"Price": { "P": 500 },
-			"Pic": { "B": "/test.jpg" }
-		})`;
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "Full Name",
+				"Nick": "<div><span>Clean <strong>Name</strong></span></div>",
+				"Price": { "P": 500 },
+				"Pic": { "B": "/test.jpg" }
+			}
+		});}catch(e){}`;
 		
-		const descResponse = `jsonp_desc({
-			"BrandNames": [],
-			"SloganInfo": []
-		})`;
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": []
+				},
+				"SloganInfo": []
+			}
+		});}catch(e){}`;
 
 		mockResponses.set(basicApiUrl, new Response(basicResponse, {
 			status: 200,
@@ -707,18 +731,24 @@ describe('PChome 24h Plugin', () => {
 	});
 
 	test('Price formatting', async () => {
-		const basicResponse = `jsonp_prod({
-			"Id": "${productId}",
-			"Name": "Product",
-			"Nick": "Product",
-			"Price": { "P": 1234567 },
-			"Pic": { "B": "/test.jpg" }
-		})`;
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "Product",
+				"Nick": "Product",
+				"Price": { "P": 1234567 },
+				"Pic": { "B": "/test.jpg" }
+			}
+		});}catch(e){}`;
 		
-		const descResponse = `jsonp_desc({
-			"BrandNames": [],
-			"SloganInfo": []
-		})`;
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": []
+				},
+				"SloganInfo": []
+			}
+		});}catch(e){}`;
 
 		mockResponses.set(basicApiUrl, new Response(basicResponse, {
 			status: 200,
@@ -742,18 +772,24 @@ describe('PChome 24h Plugin', () => {
 	});
 
 	test('Fallback to Name when Nick is empty', async () => {
-		const basicResponse = `jsonp_prod({
-			"Id": "${productId}",
-			"Name": "Full Product Name",
-			"Nick": "",
-			"Price": { "P": 100 },
-			"Pic": { "B": "/test.jpg" }
-		})`;
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "Full Product Name",
+				"Nick": "",
+				"Price": { "P": 100 },
+				"Pic": { "B": "/test.jpg" }
+			}
+		});}catch(e){}`;
 		
-		const descResponse = `jsonp_desc({
-			"BrandNames": [],
-			"SloganInfo": []
-		})`;
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": []
+				},
+				"SloganInfo": []
+			}
+		});}catch(e){}`;
 
 		mockResponses.set(basicApiUrl, new Response(basicResponse, {
 			status: 200,
@@ -777,18 +813,24 @@ describe('PChome 24h Plugin', () => {
 	});
 
 	test('Image URL construction', async () => {
-		const basicResponse = `jsonp_prod({
-			"Id": "${productId}",
-			"Name": "Product",
-			"Nick": "Product",
-			"Price": { "P": 100 },
-			"Pic": { "B": "/items/TEST123456/image.jpg" }
-		})`;
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "Product",
+				"Nick": "Product",
+				"Price": { "P": 100 },
+				"Pic": { "B": "/items/TEST123456/image.jpg" }
+			}
+		});}catch(e){}`;
 		
-		const descResponse = `jsonp_desc({
-			"BrandNames": [],
-			"SloganInfo": []
-		})`;
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": []
+				},
+				"SloganInfo": []
+			}
+		});}catch(e){}`;
 
 		mockResponses.set(basicApiUrl, new Response(basicResponse, {
 			status: 200,
@@ -812,18 +854,24 @@ describe('PChome 24h Plugin', () => {
 	});
 
 	test('Image URL with backslashes', async () => {
-		const basicResponse = `jsonp_prod({
-			"Id": "${productId}",
-			"Name": "Product",
-			"Nick": "Product",
-			"Price": { "P": 100 },
-			"Pic": { "B": "\\\\items\\\\TEST\\\\image.jpg" }
-		})`;
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "Product",
+				"Nick": "Product",
+				"Price": { "P": 100 },
+				"Pic": { "B": "\\\\items\\\\TEST\\\\image.jpg" }
+			}
+		});}catch(e){}`;
 		
-		const descResponse = `jsonp_desc({
-			"BrandNames": [],
-			"SloganInfo": []
-		})`;
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": []
+				},
+				"SloganInfo": []
+			}
+		});}catch(e){}`;
 
 		mockResponses.set(basicApiUrl, new Response(basicResponse, {
 			status: 200,
@@ -848,18 +896,24 @@ describe('PChome 24h Plugin', () => {
 	});
 
 	test('No image when Pic.B is empty', async () => {
-		const basicResponse = `jsonp_prod({
-			"Id": "${productId}",
-			"Name": "Product",
-			"Nick": "Product",
-			"Price": { "P": 100 },
-			"Pic": { "B": "" }
-		})`;
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "Product",
+				"Nick": "Product",
+				"Price": { "P": 100 },
+				"Pic": { "B": "" }
+			}
+		});}catch(e){}`;
 		
-		const descResponse = `jsonp_desc({
-			"BrandNames": [],
-			"SloganInfo": []
-		})`;
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": []
+				},
+				"SloganInfo": []
+			}
+		});}catch(e){}`;
 
 		mockResponses.set(basicApiUrl, new Response(basicResponse, {
 			status: 200,
@@ -883,13 +937,15 @@ describe('PChome 24h Plugin', () => {
 	});
 
 	test('Description API failure handled gracefully', async () => {
-		const basicResponse = `jsonp_prod({
-			"Id": "${productId}",
-			"Name": "Product",
-			"Nick": "Product",
-			"Price": { "P": 999 },
-			"Pic": { "B": "/test.jpg" }
-		})`;
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "Product",
+				"Nick": "Product",
+				"Price": { "P": 999 },
+				"Pic": { "B": "/test.jpg" }
+			}
+		});}catch(e){}`;
 
 		mockResponses.set(basicApiUrl, new Response(basicResponse, {
 			status: 200,

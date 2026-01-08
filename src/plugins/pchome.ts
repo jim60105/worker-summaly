@@ -49,27 +49,34 @@ async function fetchBasicInfo(productId: string): Promise<PchomeBasicInfo | null
 	const response = await get(apiUrl);
 	
 	// Parse JSONP response
-	// Format: jsonp_prod({...})
-	const jsonMatch = response.match(/jsonp_prod\((.+)\)$/s);
+	// Format: try{jsonp_prod({...});}catch(e){...}
+	const jsonMatch = response.match(/jsonp_prod\((\{.+?\})\)/s);
 	if (!jsonMatch) return null;
 	
 	const data = JSON.parse(jsonMatch[1]);
 	
+	// The response has the product ID as a key with "-000" suffix
+	// Example: "DBAECZ-A900GNYD0-000": {...}
+	const productKey = Object.keys(data).find(key => key.startsWith(productId));
+	if (!productKey) return null;
+	
+	const productData = data[productKey];
+	
 	// Parse Nick field (may contain HTML)
-	const nickHtml = data.Nick || '';
+	const nickHtml = productData.Nick || '';
 	const $ = cheerio.load(decodeUnicode(nickHtml));
 	const nick = $.text().trim();
 	
 	// Parse price
-	const price = data.Price?.P;
+	const price = productData.Price?.P;
 	
 	// Parse image URL
 	// Note: PChome API returns paths with backslashes that need to be removed
-	const picPath = data.Pic?.B || '';
+	const picPath = productData.Pic?.B || '';
 	const imageUrl = picPath ? `https://img.pchome.com.tw/cs${picPath.replace(/\\/g, '')}` : '';
 	
 	return {
-		name: decodeUnicode(data.Name || ''),
+		name: decodeUnicode(productData.Name || ''),
 		nick,
 		price: typeof price === 'number' ? price : 0,
 		imageUrl,
@@ -83,29 +90,28 @@ async function fetchDescription(productId: string): Promise<PchomeDescription> {
 		const response = await get(apiUrl);
 		
 		// Parse JSONP response
-		const jsonMatch = response.match(/jsonp_desc\((.+)\)$/s);
+		// Format: try{jsonp_desc({...});}catch(e){...}
+		const jsonMatch = response.match(/jsonp_desc\((\{.+?\})\)/s);
 		if (!jsonMatch) return { brand: null, slogan: null };
 		
 		const data = JSON.parse(jsonMatch[1]);
 		
+		// The response has the product ID as a key
+		const productData = data[productId];
+		if (!productData) return { brand: null, slogan: null };
+		
 		// Parse brand names
-		// BrandNames is an array that may contain quoted strings
-		const brandNames = data.BrandNames || [];
+		const brandNames = productData.Meta?.BrandNames || [];
 		let brand: string | null = null;
 		if (brandNames.length > 0) {
-			const joinedBrands = brandNames.join('_');
-			const cleanedBrands = joinedBrands.replace(/","/g, '_').replace(/^"|"$/g, '');
-			brand = decodeUnicode(cleanedBrands);
+			brand = decodeUnicode(brandNames.join(', '));
 		}
 		
 		// Parse slogan information
-		// SloganInfo is an array of slogan strings
-		const sloganInfo = data.SloganInfo || [];
+		const sloganInfo = productData.SloganInfo || [];
 		let slogan: string | null = null;
 		if (sloganInfo.length > 0) {
-			const joinedSlogans = sloganInfo.join('\n');
-			const cleanedSlogans = joinedSlogans.replace(/^"|"$/g, '');
-			slogan = decodeUnicode(cleanedSlogans);
+			slogan = decodeUnicode(sloganInfo.join('\n'));
 		}
 		
 		return { brand, slogan };
