@@ -553,14 +553,107 @@ describe('Bilibili Plugin', () => {
 		expect(test(new URL('https://bilibili.com/opus/987654321'))).toBe(true);
 	});
 
-	test('URL matching - video page should not match', async () => {
+	test('URL matching - video page should match (BV format)', async () => {
 		const { test } = await import('@/plugins/bilibili.js');
-		expect(test(new URL('https://www.bilibili.com/video/BV1234567890'))).toBe(false);
+		expect(test(new URL('https://www.bilibili.com/video/BV1234567890'))).toBe(true);
+		expect(test(new URL('https://bilibili.com/video/BV1abc123456'))).toBe(true);
+	});
+
+	test('URL matching - video page should match (av format)', async () => {
+		const { test } = await import('@/plugins/bilibili.js');
+		expect(test(new URL('https://www.bilibili.com/video/av12345678'))).toBe(true);
+		expect(test(new URL('https://bilibili.com/video/AV98765432'))).toBe(true);
 	});
 
 	test('URL matching - other domain should not match', async () => {
 		const { test } = await import('@/plugins/bilibili.js');
 		expect(test(new URL('https://example.com/opus/123'))).toBe(false);
+		expect(test(new URL('https://example.com/video/BV1234567890'))).toBe(false);
+	});
+
+	test('Video API response (BV format)', async () => {
+		const { summarize } = await import('@/plugins/bilibili.js');
+		const apiResponse = {
+			code: 0,
+			message: '0',
+			data: {
+				bvid: 'BV1NurGYDELE',
+				aid: 123456789,
+				pic: 'https://example.com/thumbnail.jpg',
+				title: 'Test Video Title',
+				pubdate: 1704067200,
+				desc: 'This is a test video description',
+				duration: 300,
+				owner: {
+					mid: 12345,
+					name: 'Test Uploader',
+					face: 'https://example.com/uploader-avatar.jpg',
+				},
+				dimension: {
+					width: 1920,
+					height: 1080,
+				},
+			},
+		};
+
+		setupMockJsonResponse('https://api.bilibili.com/x/web-interface/wbi/view?bvid=BV1NurGYDELE', apiResponse);
+
+		const result = await summarize(new URL('https://www.bilibili.com/video/BV1NurGYDELE'));
+
+		expect(result).not.toBeNull();
+		expect(result?.title).toBe('Test Video Title');
+		expect(result?.icon).toBe('https://example.com/uploader-avatar.jpg');
+		expect(result?.description).toBe('This is a test video description');
+		expect(result?.thumbnail).toBe('https://example.com/thumbnail.jpg');
+		expect(result?.sitename).toBe('Bilibili');
+		expect(result?.player.url).toBe('https://player.bilibili.com/player.html?bvid=BV1NurGYDELE&autoplay=0');
+		expect(result?.player.width).toBe(1920);
+		expect(result?.player.height).toBe(1080);
+		expect(result?.activityPub).toBeNull();
+		expect(result?.fediverseCreator).toBeNull();
+	});
+
+	test('Video API response (av format)', async () => {
+		const { summarize } = await import('@/plugins/bilibili.js');
+		const apiResponse = {
+			code: 0,
+			message: '0',
+			data: {
+				bvid: 'BV1abc123456',
+				aid: 12345678,
+				pic: 'https://example.com/av-thumbnail.jpg',
+				title: 'AV Format Video',
+				pubdate: 1704067200,
+				desc: 'Description for AV format video',
+				duration: 600,
+				owner: {
+					mid: 67890,
+					name: 'AV Uploader',
+					face: 'https://example.com/av-avatar.jpg',
+				},
+			},
+		};
+
+		setupMockJsonResponse('https://api.bilibili.com/x/web-interface/wbi/view?aid=12345678', apiResponse);
+
+		const result = await summarize(new URL('https://www.bilibili.com/video/av12345678'));
+
+		expect(result).not.toBeNull();
+		expect(result?.title).toBe('AV Format Video');
+		expect(result?.thumbnail).toBe('https://example.com/av-thumbnail.jpg');
+	});
+
+	test('Video API failure returns null', async () => {
+		const { summarize } = await import('@/plugins/bilibili.js');
+		const apiResponse = {
+			code: -404,
+			message: 'Video not found',
+		};
+
+		setupMockJsonResponse('https://api.bilibili.com/x/web-interface/wbi/view?bvid=BVnotfound123', apiResponse);
+
+		const result = await summarize(new URL('https://www.bilibili.com/video/BVnotfound123'));
+		expect(result).toBeNull();
 	});
 
 	test('DYNAMIC_TYPE_DRAW response', async () => {
