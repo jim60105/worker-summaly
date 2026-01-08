@@ -27,13 +27,13 @@ const originalFetch = global.fetch;
 
 function mockFetch(url: string | URL | Request, init?: RequestInit): Promise<Response> {
 	const urlString = typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
-	
+
 	// Try exact match first
 	const exactMatch = mockResponses.get(urlString);
 	if (exactMatch) {
 		return Promise.resolve(exactMatch.clone());
 	}
-	
+
 	// Try wildcard match (simple pattern matching)
 	for (const [pattern, response] of mockResponses.entries()) {
 		if (pattern.includes('/*')) {
@@ -44,7 +44,7 @@ function mockFetch(url: string | URL | Request, init?: RequestInit): Promise<Res
 			}
 		}
 	}
-	
+
 	// Fall back to original fetch for unmocked requests
 	return originalFetch(url, init);
 }
@@ -96,7 +96,7 @@ afterEach(() => {
 test('basic', async () => {
 	const html = getHtmlFixture('basic.html');
 	setupMockResponse(host + '/', html);
-	
+
 	expect(await summaly(host)).toEqual({
 		title: 'KISS principle',
 		icon: null,
@@ -151,7 +151,7 @@ describe('OGP', () => {
 		const html = getHtmlFixture('og-title.html');
 		setupMockResponse(host, html);
 		setupMockResponse(host + '/', html);
-		
+
 		const summary = await summaly(host, { followRedirects: false });
 		expect(summary.title).toBe('Strawberry Pasta');
 	});
@@ -237,7 +237,7 @@ describe('oEmbed', () => {
 	const setupOembed = (oEmbedPath: string, htmlFixture = 'oembed.html') => {
 		const html = getHtmlFixture(htmlFixture);
 		const oembedData = getOembedFixture(oEmbedPath);
-		
+
 		setupMockResponse(host + '/', html);
 		setupMockJsonResponse(host + '/oembed.json', oembedData);
 	};
@@ -470,7 +470,7 @@ describe('UserAgent', () => {
 			}
 			return originalFetch(url, init);
 		};
-		
+
 		global.fetch = customFetch as typeof fetch;
 		await summaly(host, { userAgent: 'test-ua' });
 
@@ -546,6 +546,61 @@ describe('content-length required', () => {
 	});
 });
 
+describe('Plurk Plugin', () => {
+	test('should match standard Plurk URL pattern', async () => {
+		const { test } = await import('@/plugins/plurk.js');
+		const url1 = new URL('https://www.plurk.com/p/abc123');
+		expect(test(url1)).toBe(true);
+	});
+
+	test('should match mobile Plurk URL pattern', async () => {
+		const { test } = await import('@/plugins/plurk.js');
+		const url2 = new URL('https://www.plurk.com/m/p/xyz789');
+		expect(test(url2)).toBe(true);
+	});
+
+	test('should not match non-Plurk URLs', async () => {
+		const { test } = await import('@/plugins/plurk.js');
+		const url3 = new URL('https://www.example.com/p/abc123');
+		expect(test(url3)).toBe(false);
+	});
+
+	test('should not match invalid Plurk paths', async () => {
+		const { test } = await import('@/plugins/plurk.js');
+		const url4 = new URL('https://www.plurk.com/user/abc123');
+		expect(test(url4)).toBe(false);
+	});
+});
+
+describe('Weibo Plugin', () => {
+	test('should match mobile Weibo URL pattern', async () => {
+		const { test } = await import('@/plugins/weibo.js');
+		const url = new URL('https://m.weibo.cn/detail/1234567890');
+		expect(test(url)).toBe(true);
+	});
+
+	test('should match desktop Weibo URL pattern', async () => {
+		const { test } = await import('@/plugins/weibo.js');
+		const url = new URL('https://weibo.com/1234567/abcdefg');
+		expect(test(url)).toBe(true);
+	});
+
+	test('should not match non-Weibo URLs', async () => {
+		const { test } = await import('@/plugins/weibo.js');
+		const url = new URL('https://www.example.com/detail/123');
+		expect(test(url)).toBe(false);
+	});
+
+	test('should not match invalid Weibo paths', async () => {
+		const { test } = await import('@/plugins/weibo.js');
+		const url1 = new URL('https://weibo.com/user/profile');
+		expect(test(url1)).toBe(false);
+
+		const url2 = new URL('https://m.weibo.cn/user/123');
+		expect(test(url2)).toBe(false);
+	});
+});
+
 describe('PChome 24h Plugin', () => {
 	const productId = 'DYAJC9-A900DPLRD';
 	const productUrl = `https://24h.pchome.com.tw/prod/${productId}`;
@@ -562,7 +617,7 @@ describe('PChome 24h Plugin', () => {
 				"Pic": { "B": "/items/DYAJC9A900DPLRD/000001.jpg" }
 			}
 		});}catch(e){}`;
-		
+
 		const descResponse = `try{jsonp_desc({
 			"${productId}": {
 				"Meta": {
@@ -589,7 +644,7 @@ describe('PChome 24h Plugin', () => {
 		}));
 
 		const summary = await summaly(productUrl);
-		
+
 		expect(summary.title).toBe('簡短名稱');
 		expect(summary.sitename).toBe('PChome 24h');
 		expect(summary.icon).toBe('https://24h.pchome.com.tw/favicon.ico');
@@ -610,7 +665,7 @@ describe('PChome 24h Plugin', () => {
 				"Pic": { "B": "/test.jpg" }
 			}
 		});}catch(e){}`;
-		
+
 		const descResponse = `try{jsonp_desc({
 			"${productId}": {
 				"Meta": {
@@ -637,7 +692,7 @@ describe('PChome 24h Plugin', () => {
 		}));
 
 		const summary = await summaly(productUrl);
-		
+
 		expect(summary.title).toBe('Short Name');
 		expect(summary.description).toContain('Test Slogan');
 		expect(summary.description).toContain('品牌: TestBrand');
@@ -654,7 +709,7 @@ describe('PChome 24h Plugin', () => {
 				"Pic": { "B": "/test.jpg" }
 			}
 		});}catch(e){}`;
-		
+
 		const descResponse = `try{jsonp_desc({
 			"${productId}": {
 				"Meta": {
@@ -681,7 +736,7 @@ describe('PChome 24h Plugin', () => {
 		}));
 
 		const summary = await summaly(productUrl);
-		
+
 		expect(summary.title).toBe('台灣');
 		expect(summary.description).toContain('高品質');
 		expect(summary.description).toContain('品牌: 台灣品牌');
@@ -697,7 +752,7 @@ describe('PChome 24h Plugin', () => {
 				"Pic": { "B": "/test.jpg" }
 			}
 		});}catch(e){}`;
-		
+
 		const descResponse = `try{jsonp_desc({
 			"${productId}": {
 				"Meta": {
@@ -724,7 +779,7 @@ describe('PChome 24h Plugin', () => {
 		}));
 
 		const summary = await summaly(productUrl);
-		
+
 		expect(summary.title).toBe('Clean Name');
 		expect(summary.title).not.toContain('<');
 		expect(summary.title).not.toContain('>');
@@ -740,7 +795,7 @@ describe('PChome 24h Plugin', () => {
 				"Pic": { "B": "/test.jpg" }
 			}
 		});}catch(e){}`;
-		
+
 		const descResponse = `try{jsonp_desc({
 			"${productId}": {
 				"Meta": {
@@ -767,7 +822,7 @@ describe('PChome 24h Plugin', () => {
 		}));
 
 		const summary = await summaly(productUrl);
-		
+
 		expect(summary.description).toContain('價格: NT$ 1,234,567');
 	});
 
@@ -781,7 +836,7 @@ describe('PChome 24h Plugin', () => {
 				"Pic": { "B": "/test.jpg" }
 			}
 		});}catch(e){}`;
-		
+
 		const descResponse = `try{jsonp_desc({
 			"${productId}": {
 				"Meta": {
@@ -808,7 +863,7 @@ describe('PChome 24h Plugin', () => {
 		}));
 
 		const summary = await summaly(productUrl);
-		
+
 		expect(summary.title).toBe('Full Product Name');
 	});
 
@@ -822,7 +877,7 @@ describe('PChome 24h Plugin', () => {
 				"Pic": { "B": "/items/TEST123456/image.jpg" }
 			}
 		});}catch(e){}`;
-		
+
 		const descResponse = `try{jsonp_desc({
 			"${productId}": {
 				"Meta": {
@@ -849,7 +904,7 @@ describe('PChome 24h Plugin', () => {
 		}));
 
 		const summary = await summaly(productUrl);
-		
+
 		expect(summary.thumbnail).toBe('https://img.pchome.com.tw/cs/items/TEST123456/image.jpg');
 	});
 
@@ -863,7 +918,7 @@ describe('PChome 24h Plugin', () => {
 				"Pic": { "B": "\\\\items\\\\TEST\\\\image.jpg" }
 			}
 		});}catch(e){}`;
-		
+
 		const descResponse = `try{jsonp_desc({
 			"${productId}": {
 				"Meta": {
@@ -890,7 +945,7 @@ describe('PChome 24h Plugin', () => {
 		}));
 
 		const summary = await summaly(productUrl);
-		
+
 		expect(summary.thumbnail).toBe('https://img.pchome.com.tw/csitemsTESTimage.jpg');
 		expect(summary.thumbnail).not.toContain('\\');
 	});
@@ -905,7 +960,7 @@ describe('PChome 24h Plugin', () => {
 				"Pic": { "B": "" }
 			}
 		});}catch(e){}`;
-		
+
 		const descResponse = `try{jsonp_desc({
 			"${productId}": {
 				"Meta": {
@@ -932,7 +987,7 @@ describe('PChome 24h Plugin', () => {
 		}));
 
 		const summary = await summaly(productUrl);
-		
+
 		expect(summary.thumbnail).toBe(null);
 	});
 
@@ -959,7 +1014,7 @@ describe('PChome 24h Plugin', () => {
 		mockResponses.set(descApiUrl, new Response(null, { status: 404 }));
 
 		const summary = await summaly(productUrl);
-		
+
 		expect(summary.title).toBe('Product');
 		expect(summary.description).toContain('價格: NT$ 999');
 	});
@@ -971,7 +1026,7 @@ describe('Instagram Plugin', () => {
 			const url = 'https://www.instagram.com/p/ABC123/';
 			const html = getHtmlFixture('basic.html');
 			setupMockResponse(url, html);
-			
+
 			const result = await summaly(url);
 			expect(result).toBeDefined();
 			expect(result.sitename).toBe('Instagram');
@@ -981,7 +1036,7 @@ describe('Instagram Plugin', () => {
 			const url = 'https://www.instagram.com/reel/XYZ789/';
 			const html = getHtmlFixture('basic.html');
 			setupMockResponse(url, html);
-			
+
 			const result = await summaly(url);
 			expect(result).toBeDefined();
 			expect(result.sitename).toBe('Instagram');
@@ -991,7 +1046,7 @@ describe('Instagram Plugin', () => {
 			const url = 'https://www.instagram.com/user.name_123/p/ABC123/';
 			const html = getHtmlFixture('basic.html');
 			setupMockResponse(url, html);
-			
+
 			const result = await summaly(url);
 			expect(result).toBeDefined();
 			expect(result.sitename).toBe('Instagram');
@@ -1001,7 +1056,7 @@ describe('Instagram Plugin', () => {
 			const url = 'https://www.instagram.com/user.name/reel/XYZ789/';
 			const html = getHtmlFixture('basic.html');
 			setupMockResponse(url, html);
-			
+
 			const result = await summaly(url);
 			expect(result).toBeDefined();
 			expect(result.sitename).toBe('Instagram');
@@ -1011,7 +1066,7 @@ describe('Instagram Plugin', () => {
 			const url = 'https://www.instagram.com/username/';
 			const html = getHtmlFixture('basic.html');
 			setupMockResponse(url, html);
-			
+
 			const result = await summaly(url);
 			// Should use general scraping, not Instagram plugin
 			expect(result.sitename).not.toBe('Instagram');
@@ -1021,10 +1076,10 @@ describe('Instagram Plugin', () => {
 	describe('Error handling', () => {
 		test('should handle scraping errors gracefully', async () => {
 			const url = 'https://www.instagram.com/p/ERROR123/';
-			
+
 			// Mock to fail
 			setupMockStatusResponse(url, 500);
-			
+
 			await expect(summaly(url)).rejects.toThrow();
 		});
 
@@ -1032,7 +1087,7 @@ describe('Instagram Plugin', () => {
 			const url = 'https://www.instagram.com/p/MIN123/';
 			const html = getHtmlFixture('no-metas.html');
 			setupMockResponse(url, html);
-			
+
 			const result = await summaly(url);
 			expect(result.sitename).toBe('Instagram');
 		});
@@ -1045,7 +1100,7 @@ describe('TikTok Plugin', () => {
 			const url = 'https://www.tiktok.com/@username/video/1234567890';
 			const html = getHtmlFixture('basic.html');
 			setupMockResponse('https://www.tnktok.com/@username/video/1234567890', html);
-			
+
 			const result = await summaly(url);
 			expect(result).toBeDefined();
 			expect(result.sitename).toBe('TikTok');
@@ -1055,7 +1110,7 @@ describe('TikTok Plugin', () => {
 			const url = 'https://tiktok.com/@user.name-123/video/9876543210';
 			const html = getHtmlFixture('basic.html');
 			setupMockResponse('https://tnktok.com/@user.name-123/video/9876543210', html);
-			
+
 			const result = await summaly(url);
 			expect(result).toBeDefined();
 			expect(result.sitename).toBe('TikTok');
@@ -1065,7 +1120,7 @@ describe('TikTok Plugin', () => {
 			const url = 'https://vm.tiktok.com/ABC123/';
 			const html = getHtmlFixture('basic.html');
 			setupMockResponse('https://vm.tnktok.com/ABC123/', html);
-			
+
 			const result = await summaly(url);
 			expect(result).toBeDefined();
 			expect(result.sitename).toBe('TikTok');
@@ -1075,7 +1130,7 @@ describe('TikTok Plugin', () => {
 			const url = 'https://vt.tiktok.com/XYZ789/';
 			const html = getHtmlFixture('basic.html');
 			setupMockResponse('https://vt.tnktok.com/XYZ789/', html);
-			
+
 			const result = await summaly(url);
 			expect(result).toBeDefined();
 			expect(result.sitename).toBe('TikTok');
@@ -1085,7 +1140,7 @@ describe('TikTok Plugin', () => {
 			const url = 'https://www.tiktok.com/@username';
 			const html = getHtmlFixture('basic.html');
 			setupMockResponse(url, html);
-			
+
 			const result = await summaly(url);
 			// Should use general scraping, not TikTok plugin
 			expect(result.sitename).not.toBe('TikTok');
@@ -1095,14 +1150,14 @@ describe('TikTok Plugin', () => {
 	describe('Proxy service and error handling', () => {
 		test('should return null when tnktok fails', async () => {
 			const url = 'https://www.tiktok.com/@user/video/999999';
-			
+
 			// Mock tnktok to fail
 			setupMockStatusResponse('https://www.tnktok.com/@user/video/999999', 500);
-			
+
 			// Import the plugin directly to test its behavior
 			const { summarize: tiktokSum } = await import('@/plugins/tiktok.js');
 			const result = await tiktokSum(new URL(url));
-			
+
 			// Plugin should return null when service fails
 			expect(result).toBe(null);
 		});
@@ -1127,7 +1182,7 @@ describe('TikTok Plugin', () => {
 				}
 				return originalFetch(url, init);
 			};
-			
+
 			global.fetch = customFetch as typeof fetch;
 			const { summarize: tiktokSum } = await import('@/plugins/tiktok.js');
 			await tiktokSum(new URL(url));
@@ -1579,7 +1634,7 @@ describe('Bluesky plugin', () => {
 		// Import the plugin directly to test its behavior
 		const { summarize: blueskySum } = await import('@/plugins/bluesky.js');
 		const result = await blueskySum(new URL('https://bsky.app/profile/testuser.bsky.social/post/fail123'));
-		
+
 		// The plugin should return null when both APIs fail
 		expect(result).toBe(null);
 	});
