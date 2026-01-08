@@ -64,6 +64,7 @@ async function fetchBasicInfo(productId: string): Promise<PchomeBasicInfo | null
 	const price = data.Price?.P;
 	
 	// Parse image URL
+	// Note: PChome API returns paths with backslashes that need to be removed
 	const picPath = data.Pic?.B || '';
 	const imageUrl = picPath ? `https://img.pchome.com.tw/cs${picPath.replace(/\\/g, '')}` : '';
 	
@@ -87,17 +88,25 @@ async function fetchDescription(productId: string): Promise<PchomeDescription> {
 		
 		const data = JSON.parse(jsonMatch[1]);
 		
-		// Parse brand
+		// Parse brand names
+		// BrandNames is an array that may contain quoted strings
 		const brandNames = data.BrandNames || [];
-		const brand = brandNames.length > 0 
-			? decodeUnicode(brandNames.join('_').replace(/","/g, '_').replace(/^"|"$/g, ''))
-			: null;
+		let brand: string | null = null;
+		if (brandNames.length > 0) {
+			const joinedBrands = brandNames.join('_');
+			const cleanedBrands = joinedBrands.replace(/","/g, '_').replace(/^"|"$/g, '');
+			brand = decodeUnicode(cleanedBrands);
+		}
 		
-		// Parse slogan
+		// Parse slogan information
+		// SloganInfo is an array of slogan strings
 		const sloganInfo = data.SloganInfo || [];
-		const slogan = sloganInfo.length > 0 
-			? decodeUnicode(sloganInfo.join('\n').replace(/^"|"$/g, ''))
-			: null;
+		let slogan: string | null = null;
+		if (sloganInfo.length > 0) {
+			const joinedSlogans = sloganInfo.join('\n');
+			const cleanedSlogans = joinedSlogans.replace(/^"|"$/g, '');
+			slogan = decodeUnicode(cleanedSlogans);
+		}
 		
 		return { brand, slogan };
 	} catch {
