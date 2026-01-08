@@ -43,11 +43,38 @@ src/
     └── status-error.ts   # Custom HTTP error class
 
 test/
-├── index.test.ts         # Unit tests (runs in Workers runtime)
+├── index.test.ts         # Core unit tests (runs in Workers runtime)
 ├── worker.test.ts        # Worker integration tests
-└── fixtures/
-    ├── html.ts           # Embedded HTML test fixtures
-    └── oembed.ts         # Embedded oEmbed JSON fixtures
+├── plugins/              # Plugin-specific tests (one file per plugin)
+│   ├── bahamut.test.ts   # Bahamut forum tests
+│   ├── bilibili.test.ts  # Bilibili video tests
+│   ├── bluesky.test.ts   # Bluesky social tests
+│   ├── dlsite.test.ts    # DLsite product tests
+│   ├── ehentai.test.ts   # E-Hentai gallery tests
+│   ├── instagram.test.ts # Instagram post tests
+│   ├── iwara.test.ts     # Iwara video tests
+│   ├── komiflo.test.ts   # Komiflo manga tests
+│   ├── misskey.test.ts   # Misskey/Fediverse tests
+│   ├── nijie.test.ts     # Nijie illustration tests
+│   ├── pchome.test.ts    # PChome 24h product tests
+│   ├── pixiv.test.ts     # Pixiv artwork tests
+│   ├── plurk.test.ts     # Plurk social tests
+│   ├── ptt.test.ts       # PTT forum tests
+│   ├── spotify.test.ts   # Spotify oEmbed tests
+│   ├── threads.test.ts   # Threads social tests
+│   ├── tiktok.test.ts    # TikTok video tests
+│   ├── twitter.test.ts   # Twitter/X status tests
+│   ├── weibo.test.ts     # Weibo post tests
+│   └── youtube.test.ts   # YouTube oEmbed tests
+├── utils/
+│   └── test-utils.ts     # Shared test utilities and mock helpers
+├── fixtures/
+│   ├── html.ts           # Embedded HTML test fixtures
+│   └── oembed.ts         # Embedded oEmbed JSON fixtures
+├── htmls/                # External HTML fixture files
+├── mocks/                # Mock handlers
+│   └── handlers.ts       # Mock request handlers
+└── oembed/               # External oEmbed fixture files
 ```
 
 ## Coding Standards
@@ -195,6 +222,35 @@ Built-in plugins are registered in [src/plugins/index.ts](src/plugins/index.ts).
 - **Unit Tests**: Run in Workers runtime using Miniflare
 - **Integration Tests**: Use Wrangler's `unstable_dev` for real Worker testing
 - **Fixtures**: Embedded in TypeScript (no file system access in Workers)
+
+### Test Structure
+
+- `test/index.test.ts` - Core summaly functionality tests (57 tests)
+- `test/plugins/*.test.ts` - Plugin-specific tests (20 files, ~150 tests)
+- `test/worker.test.ts` - Worker HTTP endpoint integration tests
+- `test/utils/test-utils.ts` - Shared mock utilities
+
+### Writing Plugin Tests
+
+Plugin tests should call the plugin's `summarize()` function directly rather than `summaly()` to avoid triggering HEAD requests for redirect checking:
+
+```typescript
+// ✅ Correct: Call plugin directly
+import { test as testUrl, summarize } from '@/plugins/example.js';
+import { useMockFetch, setupMockResponse } from '../utils/test-utils.js';
+
+useMockFetch();
+
+test('should extract metadata', async () => {
+  setupMockResponse('https://example.com/page', '<html>...</html>');
+  const result = await summarize(new URL('https://example.com/page'));
+  expect(result?.title).toBe('Expected Title');
+});
+
+// ❌ Avoid: summaly() triggers HEAD requests that may timeout
+import { summaly } from '@/index.js';
+const result = await summaly('https://example.com/page'); // May timeout
+```
 
 ### Running Tests
 

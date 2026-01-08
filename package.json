@@ -20,10 +20,10 @@
   "scripts": {
     "build": "tsc && tsc-alias",
     "eslint": "eslint",
-    "test": "vitest run ./test/index.test.ts",
-    "test:unit": "vitest run ./test/index.test.ts",
+    "test": "vitest run ./test/index.test.ts ./test/plugins/",
+    "test:unit": "vitest run ./test/index.test.ts ./test/plugins/",
     "test:worker": "vitest run --config vitest.worker.config.ts",
-    "test:all": "vitest run ./test/index.test.ts && vitest run --config vitest.worker.config.ts",
+    "test:all": "vitest run ./test/index.test.ts ./test/plugins/ && vitest run --config vitest.worker.config.ts",
     "test:watch": "vitest",
     "serve": "wrangler dev",
     "dev": "wrangler dev",

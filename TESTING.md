@@ -13,13 +13,93 @@ The test suite has been migrated to support Cloudflare Workers runtime using `@c
 
 ```
 test/
-├── index.test.ts           # Unit tests for summaly core (runs in Workers runtime)
+├── index.test.ts           # Core unit tests (runs in Workers runtime)
 ├── worker.test.ts          # Integration tests for Worker entry point (runs in Node.js)
+├── plugins/                # Plugin-specific tests (each runs in Workers runtime)
+│   ├── bahamut.test.ts     # Bahamut forum plugin tests
+│   ├── bilibili.test.ts    # Bilibili video plugin tests
+│   ├── bluesky.test.ts     # Bluesky social plugin tests
+│   ├── dlsite.test.ts      # DLsite product plugin tests
+│   ├── ehentai.test.ts     # E-Hentai gallery plugin tests
+│   ├── instagram.test.ts   # Instagram post plugin tests
+│   ├── iwara.test.ts       # Iwara video plugin tests
+│   ├── komiflo.test.ts     # Komiflo manga plugin tests
+│   ├── misskey.test.ts     # Misskey/Fediverse plugin tests
+│   ├── nijie.test.ts       # Nijie illustration plugin tests
+│   ├── pchome.test.ts      # PChome 24h product plugin tests
+│   ├── pixiv.test.ts       # Pixiv artwork plugin tests
+│   ├── plurk.test.ts       # Plurk social plugin tests
+│   ├── ptt.test.ts         # PTT forum plugin tests
+│   ├── spotify.test.ts     # Spotify oEmbed plugin tests
+│   ├── threads.test.ts     # Threads social plugin tests
+│   ├── tiktok.test.ts      # TikTok video plugin tests
+│   ├── twitter.test.ts     # Twitter/X status plugin tests
+│   ├── weibo.test.ts       # Weibo post plugin tests
+│   └── youtube.test.ts     # YouTube oEmbed plugin tests
+├── utils/
+│   └── test-utils.ts       # Shared test utilities and mock helpers
 ├── fixtures/
 │   ├── html.ts             # Embedded HTML test fixtures
 │   └── oembed.ts           # Embedded oEmbed JSON fixtures
+├── htmls/                  # HTML fixture files
 └── mocks/
     └── handlers.ts         # Mock handlers (legacy, not currently used)
+```
+
+### Test Organization
+
+- **Core Tests** (`index.test.ts`): Basic metadata extraction, OGP, Twitter Cards, oEmbed, ActivityPub, sensitive content detection, and configuration options
+- **Plugin Tests** (`plugins/*.test.ts`): Each plugin has its own test file for domain-specific functionality
+- **Integration Tests** (`worker.test.ts`): HTTP endpoint tests using real Worker instance
+
+### Writing Plugin Tests
+
+Plugin tests should call the plugin's `summarize()` function directly rather than `summaly()`. This is because:
+
+1. `summaly()` first performs a HEAD request to check for redirects
+2. HEAD requests may not be mocked, causing network timeouts in tests
+
+**Correct Pattern:**
+
+```typescript
+// ✅ Call plugin's summarize() and test() directly
+import { test as testUrl, summarize } from '@/plugins/example.js';
+import { useMockFetch, setupMockResponse } from '../utils/test-utils.js';
+
+useMockFetch();
+
+describe('Example Plugin', () => {
+  describe('URL matching', () => {
+    test('should match valid URLs', () => {
+      expect(testUrl(new URL('https://example.com/post/123'))).toBe(true);
+    });
+
+    test('should not match invalid URLs', () => {
+      expect(testUrl(new URL('https://other.com/post/123'))).toBe(false);
+    });
+  });
+
+  describe('Summarize functionality', () => {
+    test('should extract metadata', async () => {
+      const html = '<html><head><title>Test</title></head></html>';
+      setupMockResponse('https://example.com/post/123', html);
+      
+      const result = await summarize(new URL('https://example.com/post/123'));
+      expect(result?.title).toBe('Test');
+    });
+  });
+});
+```
+
+**Avoid This Pattern:**
+
+```typescript
+// ❌ summaly() triggers HEAD requests that may timeout
+import { summaly } from '@/index.js';
+
+test('my test', async () => {
+  const result = await summaly('https://example.com/post/123'); // May timeout!
+});
 ```
 
 ## Running Tests
@@ -252,7 +332,8 @@ The test suite migration from Node.js to Cloudflare Workers involved:
 4. Adding separate test configuration for Worker integration tests
 5. Removing irrelevant tests (Private IP blocking, external network tests)
 6. Updating CI/CD workflows to run both test suites
+7. Separating plugin tests into individual files for better maintainability
 
-**Final test count**: 57 unit tests + 7 integration tests = **64 tests total**
+**Final test count**: 57 unit tests + 156 plugin tests + 7 integration tests = **220 tests total**
 
-**Current pass rate**: 63/64 passing (98%) - 1 intentionally skipped
+**Current pass rate**: 213/213 unit + plugin tests passing (100%), 6/7 integration tests passing
