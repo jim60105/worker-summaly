@@ -12,6 +12,7 @@ import * as instagram from './instagram.js';
 import * as pchome from './pchome.js';
 import * as tiktok from './tiktok.js';
 import * as twitter from './twitter.js';
+import * as pixiv from './pixiv.js';
 import * as wikipedia from './wikipedia.js';
 import * as branchIoDeeplinks from './branchio-deeplinks.js';
 import { SummalyPlugin } from '@/iplugin.js';
@@ -31,6 +32,7 @@ export const plugins: SummalyPlugin[] = [
 	pchome,
 	tiktok,
 	twitter,
+	pixiv,
 	wikipedia,
 	branchIoDeeplinks,
 ];
