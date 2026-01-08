@@ -80,6 +80,7 @@ function buildSummary(tweet: FxTwitterResponse['tweet']): summary {
 		thumbnail,
 		sitename: 'X (Twitter)',
 		player: { url: null, width: null, height: null, allow: [] },
+		sensitive: false,
 		activityPub: null,
 		fediverseCreator: null,
 	};
@@ -101,6 +102,7 @@ function buildSummaryFromVx(data: VxTwitterResponse): summary {
 		thumbnail,
 		sitename: 'X (Twitter)',
 		player: { url: null, width: null, height: null, allow: [] },
+		sensitive: false,
 		activityPub: null,
 		fediverseCreator: null,
 	};
@@ -116,7 +118,7 @@ export async function summarize(url: URL): Promise<summary | null> {
 	try {
 		const response = await get(`https://api.fxtwitter.com/i/status/${tweetId}`);
 		const data = JSON.parse(response) as FxTwitterResponse;
-		
+
 		if ('tweet' in data) {
 			return buildSummary(data.tweet);
 		}
