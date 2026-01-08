@@ -409,6 +409,50 @@ export const htmlFixtures = {
 		<div>成人內容</div>
 	</body>
 </html>`,
+
+	'plurk.html': `<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Test Plurk Post</title>
+</head>
+<body>
+	<div class="name">Test User</div>
+	<div class="text_holder">This is a test plurk post with <br> line breaks</div>
+	<script>
+		var page_user = {"id": 123456, "avatar": 789};
+		var plurk_data = {
+			"response_count": 10,
+			"replurkers_count": 5,
+			"favorite_count": 3,
+			"nick_name": "testuser",
+			"content_raw": "Test content with image https://images.plurk.com/test123.jpg"
+		};
+	</script>
+</body>
+</html>`,
+
+	'plurk-no-image.html': `<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Plurk Without Image</title>
+</head>
+<body>
+	<div class="name">Another User</div>
+	<div class="text_holder">Just text content</div>
+	<script>
+		var page_user = {"id": 654321, "avatar": 987};
+		var plurk_data = {
+			"response_count": 2,
+			"replurkers_count": 1,
+			"favorite_count": 0,
+			"nick_name": "anotheruser",
+			"content_raw": "No image here"
+		};
+	</script>
+</body>
+</html>`,
 };
 
 /**
