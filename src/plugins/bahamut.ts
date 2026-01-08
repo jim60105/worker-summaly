@@ -5,12 +5,7 @@ import { clip } from '@/utils/clip.js';
 
 export function test(url: URL): boolean {
 	const hostname = url.hostname;
-	console.log('Bahamut test() called with URL:', url.href);
-	console.log('Hostname:', hostname);
-	console.log('Pathname:', url.pathname);
-	console.log('Has bsn param:', url.searchParams.has('bsn'));
 	if (hostname !== 'forum.gamer.com.tw' && hostname !== 'm.gamer.com.tw') {
-		console.log('Bahamut test() failed: hostname mismatch');
 		return false;
 	}
 	// For mobile URLs, check /forum/C.php or /forum/Co.php
@@ -18,13 +13,10 @@ export function test(url: URL): boolean {
 	const pathPattern = hostname === 'm.gamer.com.tw'
 		? /^\/forum\/(C|Co)\.php$/
 		: /^\/(C|Co)\.php$/;
-	const result = pathPattern.test(url.pathname) && url.searchParams.has('bsn');
-	console.log('Bahamut test() result:', result);
-	return result;
+	return pathPattern.test(url.pathname) && url.searchParams.has('bsn');
 }
 
 export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promise<Summary | null> {
-	console.log('Bahamut summarize() called with URL:', url.href);
 	try {
 		// Normalize to desktop version URL
 		const normalizedUrl = new URL(url.href);
@@ -33,8 +25,6 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 		if (url.hostname === 'm.gamer.com.tw') {
 			normalizedUrl.pathname = url.pathname.replace('/forum/', '/');
 		}
-
-		console.log('Normalized URL:', normalizedUrl.href);
 
 		const response = await fetch(normalizedUrl.href, {
 			headers: {
@@ -50,16 +40,11 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 		});
 
 		if (!response.ok) {
-			console.log('Bahamut fetch failed with status:', response.status);
 			return null;
 		}
 
 		const html = await response.text();
-		console.log('Bahamut HTML length:', html.length);
-		console.log('Bahamut HTML preview:', html.substring(0, 500));
 		const $ = cheerio.load(html);
-		console.log('Found og:title:', $('meta[property="og:title"]').attr('content'));
-		console.log('Found og:description:', $('meta[property="og:description"]').attr('content'));
 
 		return buildSummary($);
 	} catch (error) {
