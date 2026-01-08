@@ -11,10 +11,11 @@ export function test(url: URL): boolean {
 }
 
 export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promise<Summary | null> {
-	const match = url.pathname.match(/\/p\/([a-zA-Z0-9]+)$/);
+	// Extract plurk ID from both /p/{id} and /m/p/{id} patterns
+	const match = url.pathname.match(/\/(m\/)?p\/([a-zA-Z0-9]+)$/);
 	if (!match) return null;
 	
-	const plurkId = match[1];
+	const plurkId = match[2]; // ID is in the second capture group
 	
 	try {
 		const res = await scraping(`https://www.plurk.com/p/${plurkId}`, opts);
