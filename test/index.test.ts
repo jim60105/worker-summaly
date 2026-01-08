@@ -27,13 +27,13 @@ const originalFetch = global.fetch;
 
 function mockFetch(url: string | URL | Request, init?: RequestInit): Promise<Response> {
 	const urlString = typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
-	
+
 	// Try exact match first
 	const exactMatch = mockResponses.get(urlString);
 	if (exactMatch) {
 		return Promise.resolve(exactMatch.clone());
 	}
-	
+
 	// Try wildcard match (simple pattern matching)
 	for (const [pattern, response] of mockResponses.entries()) {
 		if (pattern.includes('/*')) {
@@ -44,7 +44,7 @@ function mockFetch(url: string | URL | Request, init?: RequestInit): Promise<Res
 			}
 		}
 	}
-	
+
 	// Fall back to original fetch for unmocked requests
 	return originalFetch(url, init);
 }
@@ -96,7 +96,7 @@ afterEach(() => {
 test('basic', async () => {
 	const html = getHtmlFixture('basic.html');
 	setupMockResponse(host + '/', html);
-	
+
 	expect(await summaly(host)).toEqual({
 		title: 'KISS principle',
 		icon: null,
@@ -151,7 +151,7 @@ describe('OGP', () => {
 		const html = getHtmlFixture('og-title.html');
 		setupMockResponse(host, html);
 		setupMockResponse(host + '/', html);
-		
+
 		const summary = await summaly(host, { followRedirects: false });
 		expect(summary.title).toBe('Strawberry Pasta');
 	});
@@ -237,7 +237,7 @@ describe('oEmbed', () => {
 	const setupOembed = (oEmbedPath: string, htmlFixture = 'oembed.html') => {
 		const html = getHtmlFixture(htmlFixture);
 		const oembedData = getOembedFixture(oEmbedPath);
-		
+
 		setupMockResponse(host + '/', html);
 		setupMockJsonResponse(host + '/oembed.json', oembedData);
 	};
@@ -470,7 +470,7 @@ describe('UserAgent', () => {
 			}
 			return originalFetch(url, init);
 		};
-		
+
 		global.fetch = customFetch as typeof fetch;
 		await summaly(host, { userAgent: 'test-ua' });
 
@@ -543,5 +543,1123 @@ describe('content-length required', () => {
 		}));
 
 		expect(await summaly(host, { contentLengthRequired: false })).toBeDefined();
+	});
+});
+
+describe('Plurk Plugin', () => {
+	test('should match standard Plurk URL pattern', async () => {
+		const { test } = await import('@/plugins/plurk.js');
+		const url1 = new URL('https://www.plurk.com/p/abc123');
+		expect(test(url1)).toBe(true);
+	});
+
+	test('should match mobile Plurk URL pattern', async () => {
+		const { test } = await import('@/plugins/plurk.js');
+		const url2 = new URL('https://www.plurk.com/m/p/xyz789');
+		expect(test(url2)).toBe(true);
+	});
+
+	test('should not match non-Plurk URLs', async () => {
+		const { test } = await import('@/plugins/plurk.js');
+		const url3 = new URL('https://www.example.com/p/abc123');
+		expect(test(url3)).toBe(false);
+	});
+
+	test('should not match invalid Plurk paths', async () => {
+		const { test } = await import('@/plugins/plurk.js');
+		const url4 = new URL('https://www.plurk.com/user/abc123');
+		expect(test(url4)).toBe(false);
+	});
+});
+
+describe('Weibo Plugin', () => {
+	test('should match mobile Weibo URL pattern', async () => {
+		const { test } = await import('@/plugins/weibo.js');
+		const url = new URL('https://m.weibo.cn/detail/1234567890');
+		expect(test(url)).toBe(true);
+	});
+
+	test('should match desktop Weibo URL pattern', async () => {
+		const { test } = await import('@/plugins/weibo.js');
+		const url = new URL('https://weibo.com/1234567/abcdefg');
+		expect(test(url)).toBe(true);
+	});
+
+	test('should not match non-Weibo URLs', async () => {
+		const { test } = await import('@/plugins/weibo.js');
+		const url = new URL('https://www.example.com/detail/123');
+		expect(test(url)).toBe(false);
+	});
+
+	test('should not match invalid Weibo paths', async () => {
+		const { test } = await import('@/plugins/weibo.js');
+		const url1 = new URL('https://weibo.com/user/profile');
+		expect(test(url1)).toBe(false);
+
+		const url2 = new URL('https://m.weibo.cn/user/123');
+		expect(test(url2)).toBe(false);
+	});
+});
+
+describe('PChome 24h Plugin', () => {
+	const productId = 'DYAJC9-A900DPLRD';
+	const productUrl = `https://24h.pchome.com.tw/prod/${productId}`;
+	const basicApiUrl = `https://ecapi-cdn.pchome.com.tw/ecshop/prodapi/v2/prod/${productId}&fields=Name,Nick,Price,Pic&_callback=jsonp_prod`;
+	const descApiUrl = `https://ecapi-cdn.pchome.com.tw/cdn/ecshop/prodapi/v2/prod/${productId}/desc&fields=Meta,SloganInfo&_callback=jsonp_desc`;
+
+	test('URL matching - valid product URL', async () => {
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "\\u5546\\u54c1\\u540d\\u7a31",
+				"Nick": "<span>\\u7c21\\u77ed\\u540d\\u7a31</span>",
+				"Price": { "P": 1990 },
+				"Pic": { "B": "/items/DYAJC9A900DPLRD/000001.jpg" }
+			}
+		});}catch(e){}`;
+
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": ["\\u54c1\\u724c\\u540d"]
+				},
+				"SloganInfo": ["\\u6a19\\u8a9e1", "\\u6a19\\u8a9e2"]
+			}
+		});}catch(e){}`;
+
+		mockResponses.set(basicApiUrl, new Response(basicResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(basicResponse)),
+			},
+		}));
+
+		mockResponses.set(descApiUrl, new Response(descResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(descResponse)),
+			},
+		}));
+
+		const summary = await summaly(productUrl);
+
+		expect(summary.title).toBe('簡短名稱');
+		expect(summary.sitename).toBe('PChome 24h');
+		expect(summary.icon).toBe('https://24h.pchome.com.tw/favicon.ico');
+		expect(summary.thumbnail).toBe('https://img.pchome.com.tw/cs/items/DYAJC9A900DPLRD/000001.jpg');
+		expect(summary.description).toContain('標語1');
+		expect(summary.description).toContain('標語2');
+		expect(summary.description).toContain('品牌: 品牌名');
+		expect(summary.description).toContain('價格: NT$ 1,990');
+	});
+
+	test('JSONP parsing', async () => {
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "Test Product",
+				"Nick": "Short Name",
+				"Price": { "P": 999 },
+				"Pic": { "B": "/test.jpg" }
+			}
+		});}catch(e){}`;
+
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": ["TestBrand"]
+				},
+				"SloganInfo": ["Test Slogan"]
+			}
+		});}catch(e){}`;
+
+		mockResponses.set(basicApiUrl, new Response(basicResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(basicResponse)),
+			},
+		}));
+
+		mockResponses.set(descApiUrl, new Response(descResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(descResponse)),
+			},
+		}));
+
+		const summary = await summaly(productUrl);
+
+		expect(summary.title).toBe('Short Name');
+		expect(summary.description).toContain('Test Slogan');
+		expect(summary.description).toContain('品牌: TestBrand');
+		expect(summary.description).toContain('價格: NT$ 999');
+	});
+
+	test('Unicode decoding', async () => {
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "\\u53f0\\u7063\\u5546\\u54c1",
+				"Nick": "\\u53f0\\u7063",
+				"Price": { "P": 1000 },
+				"Pic": { "B": "/test.jpg" }
+			}
+		});}catch(e){}`;
+
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": ["\\u53f0\\u7063\\u54c1\\u724c"]
+				},
+				"SloganInfo": ["\\u9ad8\\u54c1\\u8cea"]
+			}
+		});}catch(e){}`;
+
+		mockResponses.set(basicApiUrl, new Response(basicResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(basicResponse)),
+			},
+		}));
+
+		mockResponses.set(descApiUrl, new Response(descResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(descResponse)),
+			},
+		}));
+
+		const summary = await summaly(productUrl);
+
+		expect(summary.title).toBe('台灣');
+		expect(summary.description).toContain('高品質');
+		expect(summary.description).toContain('品牌: 台灣品牌');
+	});
+
+	test('HTML content cleanup in Nick field', async () => {
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "Full Name",
+				"Nick": "<div><span>Clean <strong>Name</strong></span></div>",
+				"Price": { "P": 500 },
+				"Pic": { "B": "/test.jpg" }
+			}
+		});}catch(e){}`;
+
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": []
+				},
+				"SloganInfo": []
+			}
+		});}catch(e){}`;
+
+		mockResponses.set(basicApiUrl, new Response(basicResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(basicResponse)),
+			},
+		}));
+
+		mockResponses.set(descApiUrl, new Response(descResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(descResponse)),
+			},
+		}));
+
+		const summary = await summaly(productUrl);
+
+		expect(summary.title).toBe('Clean Name');
+		expect(summary.title).not.toContain('<');
+		expect(summary.title).not.toContain('>');
+	});
+
+	test('Price formatting', async () => {
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "Product",
+				"Nick": "Product",
+				"Price": { "P": 1234567 },
+				"Pic": { "B": "/test.jpg" }
+			}
+		});}catch(e){}`;
+
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": []
+				},
+				"SloganInfo": []
+			}
+		});}catch(e){}`;
+
+		mockResponses.set(basicApiUrl, new Response(basicResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(basicResponse)),
+			},
+		}));
+
+		mockResponses.set(descApiUrl, new Response(descResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(descResponse)),
+			},
+		}));
+
+		const summary = await summaly(productUrl);
+
+		expect(summary.description).toContain('價格: NT$ 1,234,567');
+	});
+
+	test('Fallback to Name when Nick is empty', async () => {
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "Full Product Name",
+				"Nick": "",
+				"Price": { "P": 100 },
+				"Pic": { "B": "/test.jpg" }
+			}
+		});}catch(e){}`;
+
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": []
+				},
+				"SloganInfo": []
+			}
+		});}catch(e){}`;
+
+		mockResponses.set(basicApiUrl, new Response(basicResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(basicResponse)),
+			},
+		}));
+
+		mockResponses.set(descApiUrl, new Response(descResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(descResponse)),
+			},
+		}));
+
+		const summary = await summaly(productUrl);
+
+		expect(summary.title).toBe('Full Product Name');
+	});
+
+	test('Image URL construction', async () => {
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "Product",
+				"Nick": "Product",
+				"Price": { "P": 100 },
+				"Pic": { "B": "/items/TEST123456/image.jpg" }
+			}
+		});}catch(e){}`;
+
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": []
+				},
+				"SloganInfo": []
+			}
+		});}catch(e){}`;
+
+		mockResponses.set(basicApiUrl, new Response(basicResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(basicResponse)),
+			},
+		}));
+
+		mockResponses.set(descApiUrl, new Response(descResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(descResponse)),
+			},
+		}));
+
+		const summary = await summaly(productUrl);
+
+		expect(summary.thumbnail).toBe('https://img.pchome.com.tw/cs/items/TEST123456/image.jpg');
+	});
+
+	test('Image URL with backslashes', async () => {
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "Product",
+				"Nick": "Product",
+				"Price": { "P": 100 },
+				"Pic": { "B": "\\\\items\\\\TEST\\\\image.jpg" }
+			}
+		});}catch(e){}`;
+
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": []
+				},
+				"SloganInfo": []
+			}
+		});}catch(e){}`;
+
+		mockResponses.set(basicApiUrl, new Response(basicResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(basicResponse)),
+			},
+		}));
+
+		mockResponses.set(descApiUrl, new Response(descResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(descResponse)),
+			},
+		}));
+
+		const summary = await summaly(productUrl);
+
+		expect(summary.thumbnail).toBe('https://img.pchome.com.tw/csitemsTESTimage.jpg');
+		expect(summary.thumbnail).not.toContain('\\');
+	});
+
+	test('No image when Pic.B is empty', async () => {
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "Product",
+				"Nick": "Product",
+				"Price": { "P": 100 },
+				"Pic": { "B": "" }
+			}
+		});}catch(e){}`;
+
+		const descResponse = `try{jsonp_desc({
+			"${productId}": {
+				"Meta": {
+					"BrandNames": []
+				},
+				"SloganInfo": []
+			}
+		});}catch(e){}`;
+
+		mockResponses.set(basicApiUrl, new Response(basicResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(basicResponse)),
+			},
+		}));
+
+		mockResponses.set(descApiUrl, new Response(descResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(descResponse)),
+			},
+		}));
+
+		const summary = await summaly(productUrl);
+
+		expect(summary.thumbnail).toBe(null);
+	});
+
+	test('Description API failure handled gracefully', async () => {
+		const basicResponse = `try{jsonp_prod({
+			"${productId}-000": {
+				"Id": "${productId}",
+				"Name": "Product",
+				"Nick": "Product",
+				"Price": { "P": 999 },
+				"Pic": { "B": "/test.jpg" }
+			}
+		});}catch(e){}`;
+
+		mockResponses.set(basicApiUrl, new Response(basicResponse, {
+			status: 200,
+			headers: {
+				'content-type': 'application/json',
+				'content-length': String(Buffer.byteLength(basicResponse)),
+			},
+		}));
+
+		// Simulate 404 for description API
+		mockResponses.set(descApiUrl, new Response(null, { status: 404 }));
+
+		const summary = await summaly(productUrl);
+
+		expect(summary.title).toBe('Product');
+		expect(summary.description).toContain('價格: NT$ 999');
+	});
+});
+
+describe('Instagram Plugin', () => {
+	describe('URL matching', () => {
+		test('should match standard post URL', async () => {
+			const url = 'https://www.instagram.com/p/ABC123/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse(url, html);
+
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('Instagram');
+		});
+
+		test('should match reel URL', async () => {
+			const url = 'https://www.instagram.com/reel/XYZ789/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse(url, html);
+
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('Instagram');
+		});
+
+		test('should match post URL with username', async () => {
+			const url = 'https://www.instagram.com/user.name_123/p/ABC123/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse(url, html);
+
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('Instagram');
+		});
+
+		test('should match reel URL with username', async () => {
+			const url = 'https://www.instagram.com/user.name/reel/XYZ789/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse(url, html);
+
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('Instagram');
+		});
+
+		test('should not match user profile URL', async () => {
+			const url = 'https://www.instagram.com/username/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse(url, html);
+
+			const result = await summaly(url);
+			// Should use general scraping, not Instagram plugin
+			expect(result.sitename).not.toBe('Instagram');
+		});
+	});
+
+	describe('Error handling', () => {
+		test('should handle scraping errors gracefully', async () => {
+			const url = 'https://www.instagram.com/p/ERROR123/';
+
+			// Mock to fail
+			setupMockStatusResponse(url, 500);
+
+			await expect(summaly(url)).rejects.toThrow();
+		});
+
+		test('should force sitename to Instagram even with minimal metadata', async () => {
+			const url = 'https://www.instagram.com/p/MIN123/';
+			const html = getHtmlFixture('no-metas.html');
+			setupMockResponse(url, html);
+
+			const result = await summaly(url);
+			expect(result.sitename).toBe('Instagram');
+		});
+	});
+});
+
+describe('TikTok Plugin', () => {
+	describe('URL matching', () => {
+		test('should match standard video URL', async () => {
+			const url = 'https://www.tiktok.com/@username/video/1234567890';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://www.tnktok.com/@username/video/1234567890', html);
+
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('TikTok');
+		});
+
+		test('should match video URL without www', async () => {
+			const url = 'https://tiktok.com/@user.name-123/video/9876543210';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://tnktok.com/@user.name-123/video/9876543210', html);
+
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('TikTok');
+		});
+
+		test('should match short link from vm.tiktok.com', async () => {
+			const url = 'https://vm.tiktok.com/ABC123/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://vm.tnktok.com/ABC123/', html);
+
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('TikTok');
+		});
+
+		test('should match short link from vt.tiktok.com', async () => {
+			const url = 'https://vt.tiktok.com/XYZ789/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://vt.tnktok.com/XYZ789/', html);
+
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('TikTok');
+		});
+
+		test('should not match non-video TikTok URL', async () => {
+			const url = 'https://www.tiktok.com/@username';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse(url, html);
+
+			const result = await summaly(url);
+			// Should use general scraping, not TikTok plugin
+			expect(result.sitename).not.toBe('TikTok');
+		});
+	});
+
+	describe('Proxy service and error handling', () => {
+		test('should return null when tnktok fails', async () => {
+			const url = 'https://www.tiktok.com/@user/video/999999';
+
+			// Mock tnktok to fail
+			setupMockStatusResponse('https://www.tnktok.com/@user/video/999999', 500);
+
+			// Import the plugin directly to test its behavior
+			const { summarize: tiktokSum } = await import('@/plugins/tiktok.js');
+			const result = await tiktokSum(new URL(url));
+
+			// Plugin should return null when service fails
+			expect(result).toBe(null);
+		});
+
+		test('should use default userAgent when opts is undefined', async () => {
+			const url = 'https://www.tiktok.com/@user/video/123456';
+			const html = getHtmlFixture('basic.html');
+			let capturedUserAgent: string | undefined = undefined;
+
+			// Custom mock that captures the user agent
+			const customFetch = (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+				const urlString = typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
+				if (urlString === 'https://www.tnktok.com/@user/video/123456') {
+					capturedUserAgent = init?.headers ? (init.headers as any)['user-agent'] : undefined;
+					return Promise.resolve(new Response(html, {
+						status: 200,
+						headers: {
+							'content-length': String(Buffer.byteLength(html)),
+							'content-type': 'text/html',
+						},
+					}));
+				}
+				return originalFetch(url, init);
+			};
+
+			global.fetch = customFetch as typeof fetch;
+			const { summarize: tiktokSum } = await import('@/plugins/tiktok.js');
+			await tiktokSum(new URL(url));
+
+			// Should use default userAgent 'bot'
+			expect(capturedUserAgent).toBe('bot');
+		});
+	});
+});
+
+describe('Twitter/X Plugin', () => {
+	test('x.com URL should be handled by plugin', async () => {
+		const mockResponse = {
+			tweet: {
+				author: {
+					screen_name: 'testuser',
+					name: 'Test User',
+					avatar_url: 'https://pbs.twimg.com/profile_images/123/avatar.jpg',
+				},
+				url: 'https://x.com/testuser/status/123456789',
+				text: 'This is a test tweet with some content.',
+				created_timestamp: 1704067200,
+				replies: 10,
+				retweets: 20,
+				likes: 100,
+				media: {
+					photos: [{ type: 'photo', url: 'https://pbs.twimg.com/media/example.jpg' }],
+				},
+			},
+		};
+
+		setupMockJsonResponse('https://api.fxtwitter.com/i/status/123456789', mockResponse);
+
+		const summary = await summaly('https://x.com/testuser/status/123456789');
+		expect(summary.title).toBe('Test User');
+		expect(summary.description).toBe('This is a test tweet with some content.');
+		expect(summary.thumbnail).toBe('https://pbs.twimg.com/media/example.jpg?name=large');
+		expect(summary.sitename).toBe('X (Twitter)');
+		expect(summary.icon).toBe('https://pbs.twimg.com/profile_images/123/avatar.jpg');
+	});
+
+	test('twitter.com URL should be handled by plugin', async () => {
+		const mockResponse = {
+			tweet: {
+				author: {
+					screen_name: 'testuser',
+					name: 'Test User',
+					avatar_url: 'https://pbs.twimg.com/profile_images/123/avatar.jpg',
+				},
+				url: 'https://twitter.com/testuser/status/123456789',
+				text: 'This is a test tweet.',
+				created_timestamp: 1704067200,
+			},
+		};
+
+		setupMockJsonResponse('https://api.fxtwitter.com/i/status/123456789', mockResponse);
+
+		const summary = await summaly('https://twitter.com/testuser/status/123456789');
+		expect(summary.title).toBe('Test User');
+		expect(summary.description).toBe('This is a test tweet.');
+		expect(summary.sitename).toBe('X (Twitter)');
+	});
+
+	test('tweet with mosaic should use mosaic thumbnail', async () => {
+		const mockResponse = {
+			tweet: {
+				author: {
+					screen_name: 'testuser',
+					name: 'Test User',
+				},
+				url: 'https://x.com/testuser/status/123456789',
+				text: 'Tweet with multiple photos',
+				created_timestamp: 1704067200,
+				media: {
+					mosaic: {
+						type: 'mosaic_photo',
+						formats: { jpeg: 'https://pbs.twimg.com/media/mosaic.jpg' },
+					},
+					photos: [
+						{ type: 'photo', url: 'https://pbs.twimg.com/media/photo1.jpg' },
+						{ type: 'photo', url: 'https://pbs.twimg.com/media/photo2.jpg' },
+					],
+				},
+			},
+		};
+
+		setupMockJsonResponse('https://api.fxtwitter.com/i/status/123456789', mockResponse);
+
+		const summary = await summaly('https://x.com/testuser/status/123456789');
+		expect(summary.thumbnail).toBe('https://pbs.twimg.com/media/mosaic.jpg');
+	});
+
+	test('fallback to vxtwitter API when fxtwitter fails', async () => {
+		const vxResponse = {
+			user_screen_name: 'testuser',
+			user_name: 'Test User',
+			user_profile_image_url: 'https://pbs.twimg.com/profile_images/123/avatar.jpg',
+			tweetURL: 'https://twitter.com/testuser/status/987654321',
+			text: 'Fallback test tweet',
+			date_epoch: 1704067200,
+			mediaURLs: ['https://pbs.twimg.com/media/fallback.jpg'],
+		};
+
+		// Mock fxtwitter to fail
+		setupMockStatusResponse('https://api.fxtwitter.com/i/status/987654321', 500);
+		// Mock vxtwitter to succeed
+		setupMockJsonResponse('https://api.vxtwitter.com/i/status/987654321', vxResponse);
+
+		const summary = await summaly('https://x.com/testuser/status/987654321');
+		expect(summary.title).toBe('Test User');
+		expect(summary.description).toBe('Fallback test tweet');
+		expect(summary.thumbnail).toBe('https://pbs.twimg.com/media/fallback.jpg');
+		expect(summary.sitename).toBe('X (Twitter)');
+	});
+
+	test('vxtwitter with combinedMediaUrl should use it as thumbnail', async () => {
+		const vxResponse = {
+			user_screen_name: 'testuser',
+			user_name: 'Test User',
+			tweetURL: 'https://twitter.com/testuser/status/111222333',
+			text: 'Tweet with combined media',
+			date_epoch: 1704067200,
+			combinedMediaUrl: 'https://pbs.twimg.com/media/combined.jpg',
+			mediaURLs: ['https://pbs.twimg.com/media/photo1.jpg'],
+		};
+
+		setupMockStatusResponse('https://api.fxtwitter.com/i/status/111222333', 500);
+		setupMockJsonResponse('https://api.vxtwitter.com/i/status/111222333', vxResponse);
+
+		const summary = await summaly('https://x.com/testuser/status/111222333');
+		expect(summary.thumbnail).toBe('https://pbs.twimg.com/media/combined.jpg');
+	});
+
+	test('tweet without media should have null thumbnail', async () => {
+		const mockResponse = {
+			tweet: {
+				author: {
+					screen_name: 'testuser',
+					name: 'Test User',
+				},
+				url: 'https://x.com/testuser/status/444555666',
+				text: 'Tweet without media',
+				created_timestamp: 1704067200,
+			},
+		};
+
+		setupMockJsonResponse('https://api.fxtwitter.com/i/status/444555666', mockResponse);
+
+		const summary = await summaly('https://x.com/testuser/status/444555666');
+		expect(summary.thumbnail).toBe(null);
+	});
+
+	test('tweet without author avatar should use default icon', async () => {
+		const mockResponse = {
+			tweet: {
+				author: {
+					screen_name: 'testuser',
+					name: 'Test User',
+				},
+				url: 'https://x.com/testuser/status/777888999',
+				text: 'Tweet without avatar',
+				created_timestamp: 1704067200,
+			},
+		};
+
+		setupMockJsonResponse('https://api.fxtwitter.com/i/status/777888999', mockResponse);
+
+		const summary = await summaly('https://x.com/testuser/status/777888999');
+		expect(summary.icon).toBe('https://abs.twimg.com/favicons/twitter.2.ico');
+	});
+});
+
+describe('Bluesky plugin', () => {
+	test('URL matching - standard post URL', async () => {
+		const bskxData = {
+			posts: [{
+				author: {
+					avatar: 'https://cdn.bsky.app/avatar/example.jpg',
+					displayName: 'Test User',
+				},
+				record: {
+					text: 'Hello Bluesky! This is a test post.',
+				},
+				replyCount: 5,
+				repostCount: 10,
+				likeCount: 50,
+			}],
+		};
+
+		setupMockJsonResponse('https://bskx.app/profile/testuser.bsky.social/post/abc123/json', bskxData);
+
+		const summary = await summaly('https://bsky.app/profile/testuser.bsky.social/post/abc123');
+		expect(summary.title).toBe('Test User');
+		expect(summary.description).toBe('Hello Bluesky! This is a test post.');
+		expect(summary.sitename).toBe('Bluesky');
+		expect(summary.fediverseCreator).toBe('@testuser.bsky.social');
+	});
+
+	test('URL matching - custom domain handle', async () => {
+		const bskxData = {
+			posts: [{
+				author: {
+					avatar: 'https://cdn.bsky.app/avatar/example.jpg',
+					displayName: 'Custom User',
+				},
+				record: {
+					text: 'Post from custom domain.',
+				},
+				replyCount: 1,
+				repostCount: 2,
+				likeCount: 3,
+			}],
+		};
+
+		setupMockJsonResponse('https://bskx.app/profile/user.example.com/post/xyz789/json', bskxData);
+
+		const summary = await summaly('https://bsky.app/profile/user.example.com/post/xyz789');
+		expect(summary.title).toBe('Custom User');
+		expect(summary.fediverseCreator).toBe('@user.example.com');
+	});
+
+	test('bskx.app API - single image post', async () => {
+		const bskxData = {
+			posts: [{
+				author: {
+					avatar: 'https://cdn.bsky.app/avatar/example.jpg',
+					displayName: 'Image Poster',
+				},
+				record: {
+					text: 'Check out this image!',
+				},
+				replyCount: 5,
+				repostCount: 10,
+				likeCount: 50,
+				embed: {
+					$type: 'app.bsky.embed.images#view',
+					images: [
+						{ fullsize: 'https://cdn.bsky.app/img/example-full.jpg', thumb: 'https://cdn.bsky.app/img/example-thumb.jpg' },
+					],
+				},
+			}],
+		};
+
+		setupMockJsonResponse('https://bskx.app/profile/testuser.bsky.social/post/img123/json', bskxData);
+
+		const summary = await summaly('https://bsky.app/profile/testuser.bsky.social/post/img123');
+		expect(summary.thumbnail).toBe('https://cdn.bsky.app/img/example-full.jpg');
+	});
+
+	test('bskx.app API - multiple images (take first)', async () => {
+		const bskxData = {
+			posts: [{
+				author: {
+					avatar: 'https://cdn.bsky.app/avatar/example.jpg',
+					displayName: 'Multi Image Poster',
+				},
+				record: {
+					text: 'Multiple images!',
+				},
+				replyCount: 0,
+				repostCount: 0,
+				likeCount: 0,
+				embed: {
+					$type: 'app.bsky.embed.images#view',
+					images: [
+						{ fullsize: 'https://cdn.bsky.app/img/first.jpg' },
+						{ fullsize: 'https://cdn.bsky.app/img/second.jpg' },
+						{ fullsize: 'https://cdn.bsky.app/img/third.jpg' },
+					],
+				},
+			}],
+		};
+
+		setupMockJsonResponse('https://bskx.app/profile/testuser.bsky.social/post/multi123/json', bskxData);
+
+		const summary = await summaly('https://bsky.app/profile/testuser.bsky.social/post/multi123');
+		expect(summary.thumbnail).toBe('https://cdn.bsky.app/img/first.jpg');
+	});
+
+	test('bskx.app API - video post', async () => {
+		const bskxData = {
+			posts: [{
+				author: {
+					avatar: 'https://cdn.bsky.app/avatar/example.jpg',
+					displayName: 'Video Poster',
+				},
+				record: {
+					text: 'Check out this video!',
+				},
+				replyCount: 3,
+				repostCount: 7,
+				likeCount: 25,
+				embed: {
+					$type: 'app.bsky.embed.video#view',
+					thumbnail: 'https://cdn.bsky.app/video/thumbnail.jpg',
+				},
+			}],
+		};
+
+		setupMockJsonResponse('https://bskx.app/profile/testuser.bsky.social/post/vid123/json', bskxData);
+
+		const summary = await summaly('https://bsky.app/profile/testuser.bsky.social/post/vid123');
+		expect(summary.thumbnail).toBe('https://cdn.bsky.app/video/thumbnail.jpg');
+	});
+
+	test('bskx.app API - text-only post', async () => {
+		const bskxData = {
+			posts: [{
+				author: {
+					avatar: 'https://cdn.bsky.app/avatar/example.jpg',
+					displayName: 'Text Poster',
+				},
+				record: {
+					text: 'Just a simple text post without any media.',
+				},
+				replyCount: 2,
+				repostCount: 1,
+				likeCount: 10,
+			}],
+		};
+
+		setupMockJsonResponse('https://bskx.app/profile/testuser.bsky.social/post/text123/json', bskxData);
+
+		const summary = await summaly('https://bsky.app/profile/testuser.bsky.social/post/text123');
+		expect(summary.thumbnail).toBe(null);
+		expect(summary.description).toBe('Just a simple text post without any media.');
+	});
+
+	test('bskx.app API - fallback to handle when displayName missing', async () => {
+		const bskxData = {
+			posts: [{
+				author: {},
+				record: {
+					text: 'Post without display name.',
+				},
+				replyCount: 0,
+				repostCount: 0,
+				likeCount: 0,
+			}],
+		};
+
+		setupMockJsonResponse('https://bskx.app/profile/testuser.bsky.social/post/noname123/json', bskxData);
+
+		const summary = await summaly('https://bsky.app/profile/testuser.bsky.social/post/noname123');
+		expect(summary.title).toBe('testuser.bsky.social');
+	});
+
+	test('bskx.app API - default icon when avatar missing', async () => {
+		const bskxData = {
+			posts: [{
+				author: {
+					displayName: 'No Avatar User',
+				},
+				record: {
+					text: 'Post without avatar.',
+				},
+				replyCount: 0,
+				repostCount: 0,
+				likeCount: 0,
+			}],
+		};
+
+		setupMockJsonResponse('https://bskx.app/profile/testuser.bsky.social/post/noavatar123/json', bskxData);
+
+		const summary = await summaly('https://bsky.app/profile/testuser.bsky.social/post/noavatar123');
+		expect(summary.icon).toBe('https://bsky.app/static/favicon-32x32.png');
+	});
+
+	test('Fallback to official API when bskx fails', async () => {
+		// bskx returns 404
+		setupMockStatusResponse('https://bskx.app/profile/testuser.bsky.social/post/fallback123/json', 404);
+
+		// Official API responses
+		setupMockJsonResponse(
+			'https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=testuser.bsky.social',
+			{ did: 'did:plc:testuser123' },
+		);
+
+		setupMockJsonResponse(
+			'https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=at://did:plc:testuser123/app.bsky.feed.post/fallback123',
+			{
+				thread: {
+					post: {
+						author: {
+							avatar: 'https://cdn.bsky.app/avatar/fallback.jpg',
+							displayName: 'Fallback User',
+						},
+						record: {
+							text: 'This came from the official API.',
+						},
+						replyCount: 1,
+						repostCount: 2,
+						likeCount: 3,
+					},
+				},
+			},
+		);
+
+		const summary = await summaly('https://bsky.app/profile/testuser.bsky.social/post/fallback123');
+		expect(summary.title).toBe('Fallback User');
+		expect(summary.description).toBe('This came from the official API.');
+		expect(summary.sitename).toBe('Bluesky');
+	});
+
+	test('Official API - with image embed', async () => {
+		setupMockStatusResponse('https://bskx.app/profile/testuser.bsky.social/post/official123/json', 500);
+
+		setupMockJsonResponse(
+			'https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=testuser.bsky.social',
+			{ did: 'did:plc:testuser456' },
+		);
+
+		setupMockJsonResponse(
+			'https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=at://did:plc:testuser456/app.bsky.feed.post/official123',
+			{
+				thread: {
+					post: {
+						author: {
+							avatar: 'https://cdn.bsky.app/avatar/official.jpg',
+							displayName: 'Official User',
+						},
+						record: {
+							text: 'Post with image from official API.',
+						},
+						replyCount: 5,
+						repostCount: 10,
+						likeCount: 20,
+						embed: {
+							$type: 'app.bsky.embed.images#view',
+							images: [
+								{ fullsize: 'https://cdn.bsky.app/img/official-image.jpg' },
+							],
+						},
+					},
+				},
+			},
+		);
+
+		const summary = await summaly('https://bsky.app/profile/testuser.bsky.social/post/official123');
+		expect(summary.thumbnail).toBe('https://cdn.bsky.app/img/official-image.jpg');
+	});
+
+
+	test('Both APIs fail - plugin returns null', async () => {
+		// Mock both APIs to fail
+		setupMockStatusResponse('https://bskx.app/profile/testuser.bsky.social/post/fail123/json', 500);
+		setupMockStatusResponse('https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=testuser.bsky.social', 500);
+
+		// Import the plugin directly to test its behavior
+		const { summarize: blueskySum } = await import('@/plugins/bluesky.js');
+		const result = await blueskySum(new URL('https://bsky.app/profile/testuser.bsky.social/post/fail123'));
+
+		// The plugin should return null when both APIs fail
+		expect(result).toBe(null);
+	});
+
+	test('Long description is clipped', async () => {
+		const longText = 'A'.repeat(400);
+		const bskxData = {
+			posts: [{
+				author: {
+					displayName: 'Long Poster',
+				},
+				record: {
+					text: longText,
+				},
+				replyCount: 0,
+				repostCount: 0,
+				likeCount: 0,
+			}],
+		};
+
+		setupMockJsonResponse('https://bskx.app/profile/testuser.bsky.social/post/long123/json', bskxData);
+
+		const summary = await summaly('https://bsky.app/profile/testuser.bsky.social/post/long123');
+		expect(summary.description).not.toBeNull();
+		expect(summary.description!.length).toBeLessThanOrEqual(303); // 300 + '...'
+		expect(summary.description!.endsWith('...')).toBe(true);
 	});
 });

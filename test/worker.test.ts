@@ -75,4 +75,39 @@ describe('Worker Entry Point', () => {
 		expect(json).toHaveProperty('title');
 		expect(json).toHaveProperty('url');
 	});
+
+	it('should summarize Twitter/X URL successfully', async () => {
+		const twitterUrl = 'https://x.com/a_nai_nai/status/2002748391109935561';
+		const response = await worker.fetch(`/?url=${encodeURIComponent(twitterUrl)}`);
+		
+		expect(response.status).toBe(200);
+		
+		const json = await response.json<{
+			title: string | null;
+			icon: string | null;
+			description: string | null;
+			thumbnail: string | null;
+			sitename: string | null;
+			player: { url: string | null; width: number | null; height: number | null; allow: string[] };
+			sensitive: boolean;
+			activityPub: string | null;
+			fediverseCreator: string | null;
+			url: string;
+		}>();
+		
+		// Verify the response structure
+		expect(json).toHaveProperty('title');
+		expect(json).toHaveProperty('url');
+		expect(json).toHaveProperty('sensitive');
+		expect(json).toHaveProperty('player');
+		expect(json).toHaveProperty('sitename');
+		expect(json.url).toBe(twitterUrl);
+		expect(json.sitename).toBe('X (Twitter)');
+		
+		// Verify the response has valid content (not null/empty)
+		expect(json.title).toBeTruthy();
+		expect(json.description).toBeTruthy();
+		
+		console.log('Twitter/X Summary Result:', JSON.stringify(json, null, 2));
+	});
 });
