@@ -1,3 +1,4 @@
+import * as cheerio from 'cheerio';
 import type Summary from '@/summary.js';
 import type { GeneralScrapingOptions } from '@/general.js';
 import { get } from '@/utils/fetch.js';
@@ -89,8 +90,9 @@ function buildSummary(body: NonNullable<PixivAjaxResponse['body']>, artworkId: s
 	// Get description: prefer Twitter description, fallback to regular description
 	let description = body.extraData?.meta?.twitter?.description || body.description;
 	if (description) {
-		// Remove HTML tags
-		description = description.replace(/<[^>]+>/g, '');
+		// Safely extract text from HTML using cheerio
+		const $ = cheerio.load(description);
+		description = $.text();
 		description = clip(description, 300);
 	}
 	
