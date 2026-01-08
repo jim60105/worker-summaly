@@ -9,7 +9,7 @@ Forked from [misskey-dev/summaly](https://github.com/misskey-dev/summaly) and co
 - 🚀 **Edge-Native**: Runs on Cloudflare's global edge network for minimal latency
 - 🔍 **Rich Metadata Extraction**: Open Graph, Twitter Cards, standard HTML metadata
 - 🎬 **oEmbed Support**: Automatic player detection for YouTube, Vimeo, and more
-- 🔌 **Built-in Plugins**: Specialized handlers for Amazon, Bluesky, Wikipedia, Branch.io
+- 🔌 **24 Built-in Plugins**: Specialized handlers for major platforms and services
 - 🎭 **ActivityPub Ready**: Detects ActivityPub endpoints and Fediverse creator handles
 - ⚠️ **Content Safety**: Automatic sensitive content detection
 - 🌐 **CORS Enabled**: Ready for browser-based applications
@@ -20,28 +20,28 @@ Forked from [misskey-dev/summaly](https://github.com/misskey-dev/summaly) and co
 
 1. **Clone the repository**
 
-```bash
-git clone https://github.com/jim60105/worker-summaly.git
-cd worker-summaly
-```
+   ```bash
+   git clone https://github.com/jim60105/worker-summaly.git
+   cd worker-summaly
+   ```
 
 2. **Install dependencies**
 
-```bash
-pnpm install
-```
+   ```bash
+   pnpm install
+   ```
 
 3. **Build the project**
 
-```bash
-pnpm run build
-```
+   ```bash
+   pnpm run build
+   ```
 
 4. **Deploy to Cloudflare Workers**
 
-```bash
-pnpm run deploy
-```
+   ```bash
+   pnpm run deploy
+   ```
 
 ### Local Development
 
@@ -53,20 +53,68 @@ pnpm run dev
 
 The API will be available at `http://localhost:8787`
 
+## 🔌 Built-in Plugins
+
+Worker Summaly includes 24 specialized plugins for extracting metadata from popular platforms and services:
+
+### Social Media & Communication
+
+- **Twitter/X** - Enhanced metadata extraction for tweets
+- **Threads** - Meta's Threads platform support
+- **Bluesky** - Decentralized social network support
+- **Misskey** - Japanese microblogging platform
+- **Plurk** - Timeline-based social network
+- **Weibo** - Chinese microblogging platform
+
+### Video & Streaming
+
+- **YouTube** - Video metadata and player embedding
+- **TikTok** - Short-form video content
+- **Bilibili** - Chinese video sharing platform
+- **Iwara** - Video sharing platform
+- **Spotify** - Music and podcast streaming
+
+### Content Platforms
+
+- **Wikipedia** - Encyclopedia articles with API integration
+- **Amazon** - Product page metadata extraction
+- **DLsite** - Digital content marketplace
+- **Bahamut** - Taiwanese gaming and anime community
+- **PTT** - Taiwan's largest online forum
+- **Komiflo** - Comic platform
+- **E-Hentai** - Adult content platform
+
+### Art & Creative
+
+- **Pixiv** - Japanese illustration community
+- **Nijie** - Japanese art community
+
+### E-commerce
+
+- **PChome** - Taiwanese e-commerce platform
+
+### Other Services
+
+- **Branch.io** - Deep link resolution
+- ~~**Instagram**~~ - Currently not working
+
+> [!NOTE]
+> The Instagram plugin is currently non-functional due to platform restrictions.
+
 ## 📖 API Documentation
 
 ### Endpoint
 
-```
+```http
 GET /?url={target_url}&lang={language}
 ```
 
 ### Query Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `url` | string | ✅ | The URL of the web page to summarize |
-| `lang` | string | ❌ | Accept-Language header value (e.g., `en`, `ja`) |
+| Parameter | Type     | Required | Description                                       |
+|-----------|----------|----------|---------------------------------------------------|
+| `url`     | string   | ✅       | The URL of the web page to summarize              |
+| `lang`    | string   | ❌       | Accept-Language header value (e.g., `en`, `ja`)   |
 
 ### Example Request
 
@@ -155,7 +203,7 @@ See [TESTING.md](TESTING.md) for comprehensive testing documentation.
 
 ## 🏗️ Project Structure
 
-```
+```text
 src/
 ├── worker.ts          # Cloudflare Workers entry point
 ├── index.ts           # Core summaly() function
