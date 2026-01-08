@@ -2,6 +2,10 @@ import type Summary from '@/summary.js';
 import { DEFAULT_BOT_UA } from '@/utils/fetch.js';
 import { clip } from '@/utils/clip.js';
 
+// API timeout constants
+const BSKX_API_TIMEOUT = 2500;
+const OFFICIAL_API_TIMEOUT = 2000;
+
 export function test(url: URL): boolean {
 	if (url.hostname !== 'bsky.app') return false;
 	return /^\/profile\/[a-zA-Z0-9.-]+\/post\/[a-zA-Z0-9]+$/.test(url.pathname);
@@ -99,7 +103,7 @@ async function fetchBskx(handle: string, postId: string): Promise<PostData | nul
 			headers: {
 				'User-Agent': DEFAULT_BOT_UA,
 			},
-			signal: AbortSignal.timeout(2500),
+			signal: AbortSignal.timeout(BSKX_API_TIMEOUT),
 		},
 	);
 
@@ -140,7 +144,7 @@ async function fetchOfficialApi(handle: string, postId: string): Promise<PostDat
 	// Step 1: Resolve handle to DID
 	const didResponse = await fetch(
 		`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`,
-		{ signal: AbortSignal.timeout(2000) },
+		{ signal: AbortSignal.timeout(OFFICIAL_API_TIMEOUT) },
 	);
 	
 	if (!didResponse.ok) return null;
@@ -150,7 +154,7 @@ async function fetchOfficialApi(handle: string, postId: string): Promise<PostDat
 	// Step 2: Get post thread
 	const threadResponse = await fetch(
 		`https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=at://${didData.did}/app.bsky.feed.post/${postId}`,
-		{ signal: AbortSignal.timeout(2000) },
+		{ signal: AbortSignal.timeout(OFFICIAL_API_TIMEOUT) },
 	);
 	
 	if (!threadResponse.ok) return null;
