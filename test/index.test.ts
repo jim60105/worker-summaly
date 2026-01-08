@@ -645,7 +645,7 @@ describe('E-Hentai Plugin', () => {
 
 describe('Threads Plugin', () => {
 	test('正確匹配 Threads 貼文 URL', async () => {
-		const url = 'https://www.threads.net/@username/post/ABC123xyz';
+		const url = 'https://www.threads.com/@username/post/ABC123xyz';
 
 		// Mock fixthreads response with complete HTML
 		const htmlContent = '<html><head><title>Test Thread</title><meta property="og:title" content="Test Thread Post" /><meta property="og:description" content="This is a test thread" /><link rel="icon" href="https://fixthreads.net/favicon.ico" /></head><body></body></html>';
@@ -662,7 +662,7 @@ describe('Threads Plugin', () => {
 	});
 
 	test('支援不帶 www 的 URL', async () => {
-		const url = 'https://threads.net/@user123/post/DEF456';
+		const url = 'https://threads.com/@user123/post/DEF456';
 
 		setupMockResponse('https://fixthreads.net/@user123/post/DEF456', `
 			<html>
@@ -686,16 +686,16 @@ describe('Threads Plugin', () => {
 
 	test('非貼文 URL 應該不匹配', async () => {
 		const html = getHtmlFixture('basic.html');
-		setupMockResponse('https://www.threads.net/@username', html);
+		setupMockResponse('https://www.threads.com/@username', html);
 
-		const summary = await summaly('https://www.threads.net/@username');
+		const summary = await summaly('https://www.threads.com/@username');
 
 		// Should use general parser, not Threads plugin
 		expect(summary.sitename).not.toBe('Threads');
 	});
 
 	test('fixthreads 失敗時應該拋出錯誤', async () => {
-		const url = 'https://www.threads.net/@invalid/post/INVALID';
+		const url = 'https://www.threads.com/@invalid/post/INVALID';
 
 		// Mock fixthreads failure
 		setupMockStatusResponse('https://fixthreads.net/@invalid/post/INVALID', 404);
