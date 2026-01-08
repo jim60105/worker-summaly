@@ -546,6 +546,179 @@ describe('content-length required', () => {
 	});
 });
 
+describe('Instagram Plugin', () => {
+	describe('URL matching', () => {
+		test('should match standard post URL', async () => {
+			const url = 'https://www.instagram.com/p/ABC123/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse(url, html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('Instagram');
+		});
+
+		test('should match reel URL', async () => {
+			const url = 'https://www.instagram.com/reel/XYZ789/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse(url, html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('Instagram');
+		});
+
+		test('should match post URL with username', async () => {
+			const url = 'https://www.instagram.com/user.name_123/p/ABC123/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse(url, html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('Instagram');
+		});
+
+		test('should match reel URL with username', async () => {
+			const url = 'https://www.instagram.com/user.name/reel/XYZ789/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse(url, html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('Instagram');
+		});
+
+		test('should not match user profile URL', async () => {
+			const url = 'https://www.instagram.com/username/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse(url, html);
+			
+			const result = await summaly(url);
+			// Should use general scraping, not Instagram plugin
+			expect(result.sitename).not.toBe('Instagram');
+		});
+	});
+
+	describe('Error handling', () => {
+		test('should handle scraping errors gracefully', async () => {
+			const url = 'https://www.instagram.com/p/ERROR123/';
+			
+			// Mock to fail
+			setupMockStatusResponse(url, 500);
+			
+			await expect(summaly(url)).rejects.toThrow();
+		});
+
+		test('should force sitename to Instagram even with minimal metadata', async () => {
+			const url = 'https://www.instagram.com/p/MIN123/';
+			const html = getHtmlFixture('no-metas.html');
+			setupMockResponse(url, html);
+			
+			const result = await summaly(url);
+			expect(result.sitename).toBe('Instagram');
+		});
+	});
+});
+
+describe('TikTok Plugin', () => {
+	describe('URL matching', () => {
+		test('should match standard video URL', async () => {
+			const url = 'https://www.tiktok.com/@username/video/1234567890';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://www.tnktok.com/@username/video/1234567890', html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('TikTok');
+		});
+
+		test('should match video URL without www', async () => {
+			const url = 'https://tiktok.com/@user.name-123/video/9876543210';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://tnktok.com/@user.name-123/video/9876543210', html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('TikTok');
+		});
+
+		test('should match short link from vm.tiktok.com', async () => {
+			const url = 'https://vm.tiktok.com/ABC123/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://vm.tnktok.com/ABC123/', html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('TikTok');
+		});
+
+		test('should match short link from vt.tiktok.com', async () => {
+			const url = 'https://vt.tiktok.com/XYZ789/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://vt.tnktok.com/XYZ789/', html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('TikTok');
+		});
+
+		test('should not match non-video TikTok URL', async () => {
+			const url = 'https://www.tiktok.com/@username';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse(url, html);
+			
+			const result = await summaly(url);
+			// Should use general scraping, not TikTok plugin
+			expect(result.sitename).not.toBe('TikTok');
+		});
+	});
+
+	describe('Proxy service and error handling', () => {
+		test('should return null when tnktok fails', async () => {
+			const url = 'https://www.tiktok.com/@user/video/999999';
+			
+			// Mock tnktok to fail
+			setupMockStatusResponse('https://www.tnktok.com/@user/video/999999', 500);
+			
+			// Import the plugin directly to test its behavior
+			const { summarize: tiktokSum } = await import('@/plugins/tiktok.js');
+			const result = await tiktokSum(new URL(url));
+			
+			// Plugin should return null when service fails
+			expect(result).toBe(null);
+		});
+
+		test('should use default userAgent when opts is undefined', async () => {
+			const url = 'https://www.tiktok.com/@user/video/123456';
+			const html = getHtmlFixture('basic.html');
+			let capturedUserAgent: string | undefined = undefined;
+
+			// Custom mock that captures the user agent
+			const customFetch = (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+				const urlString = typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
+				if (urlString === 'https://www.tnktok.com/@user/video/123456') {
+					capturedUserAgent = init?.headers ? (init.headers as any)['user-agent'] : undefined;
+					return Promise.resolve(new Response(html, {
+						status: 200,
+						headers: {
+							'content-length': String(Buffer.byteLength(html)),
+							'content-type': 'text/html',
+						},
+					}));
+				}
+				return originalFetch(url, init);
+			};
+			
+			global.fetch = customFetch as typeof fetch;
+			const { summarize: tiktokSum } = await import('@/plugins/tiktok.js');
+			await tiktokSum(new URL(url));
+
+			// Should use default userAgent 'bot'
+			expect(capturedUserAgent).toBe('bot');
+		});
+	});
+});
+
 describe('Twitter/X Plugin', () => {
 	test('x.com URL should be handled by plugin', async () => {
 		const mockResponse = {
