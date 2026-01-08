@@ -342,6 +342,76 @@ export const htmlFixtures = {
 	</body>
 </html>`,
 
+	'ptt-basic.html': `<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="utf-8">
+		<meta property="og:title" content="[新聞] 測試標題">
+		<meta property="og:description" content="測試文章描述內容">
+		<title>[新聞] 測試標題 - 看板 Gossiping - 批踢踢實業坊</title>
+	</head>
+	<body>
+		<div id="main-content">
+			這是測試內容
+			圖片連結: https://example.com/image.jpg
+		</div>
+	</body>
+</html>`,
+
+	'ptt-news.html': `<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="utf-8">
+		<meta property="og:title" content="[新聞] 新聞標題測試">
+		<meta property="og:description" content="1.媒體來源: 測試媒體">
+		<title>[新聞] 新聞標題測試 - 看板 Gossiping - 批踢踢實業坊</title>
+	</head>
+	<body>
+		<div id="main-content">
+			1.媒體來源: 測試媒體
+			2.記者署名: 測試記者
+			3.完整新聞標題: 新聞標題測試
+			4.完整新聞內文:
+			這是新聞內容的第一段
+			這是新聞內容的第二段
+			這是新聞內容的第三段
+			※ 簽名檔會被移除
+			5.完整新聞連結: https://example.com/news
+		</div>
+	</body>
+</html>`,
+
+	'bahamut-basic.html': `<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta property="og:title" content="【心得】分享MHR狩獵笛旋律持續時間表 @魔物獵人 系列 哈啦板 - 巴哈姆特">
+		<meta property="og:description" content="安安，我是PUMA很忙 因為最近在狩獵的時候我的旋律全上強迫症發作 雖然目前三音可以全上旋律 不過有部分的旋律持續時間不大一樣 所以就跑去訓練場測試每種旋律的持續時間 順便分享給大家">
+		<meta property="og:image" content="https://truth.bahamut.com.tw/s01/202207/9dc99bd8489e538f05b65554d31a9679.JPG">
+		<meta property="og:site_name" content="巴哈姆特電玩資訊站">
+		<title>【心得】分享MHR狩獵笛旋律持續時間表 @魔物獵人 系列 哈啦板 - 巴哈姆特</title>
+	</head>
+	<body>
+		<div>文章內容</div>
+	</body>
+</html>`,
+
+	'bahamut-adult.html': `<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta property="og:title" content="【討論】R-18 討論串 @某板 哈啦板 - 巴哈姆特">
+		<meta property="og:description" content="This is an adult content discussion thread">
+		<meta property="og:image" content="https://truth.bahamut.com.tw/s01/202207/example.JPG">
+		<meta property="og:site_name" content="巴哈姆特電玩資訊站">
+		<meta name="rating" content="adult">
+		<title>【討論】R-18 討論串 @某板 哈啦板 - 巴哈姆特</title>
+	</head>
+	<body>
+		<div>成人內容</div>
+	</body>
+</html>`,
+
 	'plurk.html': `<!DOCTYPE html>
 <html>
 <head>

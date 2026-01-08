@@ -1,4 +1,6 @@
 import * as amazon from './amazon.js';
+import * as bahamut from './bahamut.js';
+import * as ptt from './ptt.js';
 import * as bilibili from './bilibili.js';
 import * as bluesky from './bluesky.js';
 import * as misskey from './misskey.js';
@@ -14,6 +16,8 @@ import { SummalyPlugin } from '@/iplugin.js';
 
 export const plugins: SummalyPlugin[] = [
 	amazon,
+	bahamut,
+	ptt,
 	bilibili,
 	bluesky,
 	misskey,
