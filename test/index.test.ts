@@ -545,3 +545,289 @@ describe('content-length required', () => {
 		expect(await summaly(host, { contentLengthRequired: false })).toBeDefined();
 	});
 });
+
+describe('Bilibili Plugin', () => {
+	test('URL matching - opus page should match', async () => {
+		const { test } = await import('@/plugins/bilibili.js');
+		expect(test(new URL('https://www.bilibili.com/opus/123456789'))).toBe(true);
+		expect(test(new URL('https://bilibili.com/opus/987654321'))).toBe(true);
+	});
+
+	test('URL matching - video page should not match', async () => {
+		const { test } = await import('@/plugins/bilibili.js');
+		expect(test(new URL('https://www.bilibili.com/video/BV1234567890'))).toBe(false);
+	});
+
+	test('URL matching - other domain should not match', async () => {
+		const { test } = await import('@/plugins/bilibili.js');
+		expect(test(new URL('https://example.com/opus/123'))).toBe(false);
+	});
+
+	test('DYNAMIC_TYPE_DRAW response', async () => {
+		const { summarize } = await import('@/plugins/bilibili.js');
+		const apiResponse = {
+			code: 0,
+			data: {
+				item: {
+					type: 'DYNAMIC_TYPE_DRAW',
+					modules: {
+						module_author: {
+							mid: 123456,
+							name: 'Test User',
+							face: 'https://example.com/avatar.jpg',
+						},
+						module_dynamic: {
+							desc: {
+								text: 'This is a test dynamic with an image',
+							},
+							major: {
+								draw: {
+									items: [
+										{ src: 'https://example.com/image1.jpg' },
+										{ src: 'https://example.com/image2.jpg' },
+									],
+								},
+							},
+						},
+					},
+				},
+			},
+		};
+
+		setupMockJsonResponse('https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?id=123456789', apiResponse);
+
+		const result = await summarize(new URL('https://www.bilibili.com/opus/123456789'));
+		
+		expect(result).not.toBeNull();
+		expect(result?.title).toBe('Test User');
+		expect(result?.icon).toBe('https://example.com/avatar.jpg');
+		expect(result?.description).toBe('This is a test dynamic with an image');
+		expect(result?.thumbnail).toBe('https://example.com/image1.jpg');
+		expect(result?.sitename).toBe('Bilibili');
+		expect(result?.activityPub).toBeNull();
+		expect(result?.fediverseCreator).toBeNull();
+	});
+
+	test('DYNAMIC_TYPE_ARTICLE response', async () => {
+		const { summarize } = await import('@/plugins/bilibili.js');
+		const apiResponse = {
+			code: 0,
+			data: {
+				item: {
+					type: 'DYNAMIC_TYPE_ARTICLE',
+					modules: {
+						module_author: {
+							mid: 123456,
+							name: 'Article Author',
+							face: 'https://example.com/avatar2.jpg',
+						},
+						module_dynamic: {
+							major: {
+								article: {
+									title: 'Test Article Title',
+									covers: ['https://example.com/cover1.jpg', 'https://example.com/cover2.jpg'],
+								},
+							},
+						},
+					},
+				},
+			},
+		};
+
+		setupMockJsonResponse('https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?id=987654321', apiResponse);
+
+		const result = await summarize(new URL('https://www.bilibili.com/opus/987654321'));
+		
+		expect(result).not.toBeNull();
+		expect(result?.title).toBe('Article Author');
+		expect(result?.description).toBe('Test Article Title');
+		expect(result?.thumbnail).toBe('https://example.com/cover1.jpg');
+	});
+
+	test('DYNAMIC_TYPE_WORD response', async () => {
+		const { summarize } = await import('@/plugins/bilibili.js');
+		const apiResponse = {
+			code: 0,
+			data: {
+				item: {
+					type: 'DYNAMIC_TYPE_WORD',
+					modules: {
+						module_author: {
+							mid: 123456,
+							name: 'Text User',
+							face: 'https://example.com/avatar3.jpg',
+						},
+						module_dynamic: {
+							desc: {
+								text: 'Just a simple text post',
+							},
+						},
+					},
+				},
+			},
+		};
+
+		setupMockJsonResponse('https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?id=111111111', apiResponse);
+
+		const result = await summarize(new URL('https://www.bilibili.com/opus/111111111'));
+		
+		expect(result).not.toBeNull();
+		expect(result?.title).toBe('Text User');
+		expect(result?.description).toBe('Just a simple text post');
+		expect(result?.thumbnail).toBeNull();
+	});
+
+	test('Failed API response', async () => {
+		const { summarize } = await import('@/plugins/bilibili.js');
+		setupMockStatusResponse('https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?id=999999999', 404);
+
+		const result = await summarize(new URL('https://www.bilibili.com/opus/999999999'));
+		
+		expect(result).toBeNull();
+	});
+
+	test('API response with error code', async () => {
+		const { summarize } = await import('@/plugins/bilibili.js');
+		const apiResponse = {
+			code: -1,
+			data: null,
+		};
+
+		setupMockJsonResponse('https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?id=888888888', apiResponse);
+
+		const result = await summarize(new URL('https://www.bilibili.com/opus/888888888'));
+		
+		expect(result).toBeNull();
+	});
+});
+
+describe('Misskey Plugin', () => {
+	test('URL matching - note page should match', async () => {
+		const { test } = await import('@/plugins/misskey.js');
+		expect(test(new URL('https://misskey.io/notes/abcdef123'))).toBe(true);
+		expect(test(new URL('https://misskey.io/notes/xyz789ABC'))).toBe(true);
+	});
+
+	test('URL matching - other path should not match', async () => {
+		const { test } = await import('@/plugins/misskey.js');
+		expect(test(new URL('https://misskey.io/users/testuser'))).toBe(false);
+	});
+
+	test('URL matching - other domain should not match', async () => {
+		const { test } = await import('@/plugins/misskey.js');
+		expect(test(new URL('https://example.com/notes/abc123'))).toBe(false);
+	});
+
+	test('Note with image', async () => {
+		const { summarize } = await import('@/plugins/misskey.js');
+		const apiResponse = {
+			id: 'abcdef123',
+			user: {
+				username: 'testuser',
+				name: 'Test Display Name',
+				avatarUrl: 'https://misskey.io/avatar.png',
+			},
+			text: 'This is a test note with an image',
+			repliesCount: 5,
+			renoteCount: 10,
+			reactions: {
+				'👍': 3,
+				'❤️': 7,
+			},
+			files: [
+				{
+					type: 'image/jpeg',
+					url: 'https://misskey.io/files/image1.jpg',
+					thumbnailUrl: 'https://misskey.io/files/thumb1.jpg',
+				},
+				{
+					type: 'image/png',
+					url: 'https://misskey.io/files/image2.png',
+				},
+			],
+		};
+
+		setupMockJsonResponse('https://misskey.io/api/notes/show', apiResponse);
+
+		const result = await summarize(new URL('https://misskey.io/notes/abcdef123'));
+		
+		expect(result).not.toBeNull();
+		expect(result?.title).toBe('Test Display Name');
+		expect(result?.icon).toBe('https://misskey.io/avatar.png');
+		expect(result?.description).toBe('This is a test note with an image');
+		expect(result?.thumbnail).toBe('https://misskey.io/files/image1.jpg');
+		expect(result?.sitename).toBe('Misskey.io');
+		expect(result?.activityPub).toBe('https://misskey.io/notes/abcdef123');
+		expect(result?.fediverseCreator).toBe('@testuser@misskey.io');
+	});
+
+	test('Note without image', async () => {
+		const { summarize } = await import('@/plugins/misskey.js');
+		const apiResponse = {
+			id: 'xyz789',
+			user: {
+				username: 'anotheruser',
+				name: null,
+				avatarUrl: null,
+			},
+			text: 'Plain text note without images',
+			repliesCount: 0,
+			renoteCount: 0,
+			reactions: {},
+			files: [],
+		};
+
+		setupMockJsonResponse('https://misskey.io/api/notes/show', apiResponse);
+
+		const result = await summarize(new URL('https://misskey.io/notes/xyz789'));
+		
+		expect(result).not.toBeNull();
+		expect(result?.title).toBe('anotheruser');
+		expect(result?.icon).toBe('https://misskey.io/favicon.ico');
+		expect(result?.description).toBe('Plain text note without images');
+		expect(result?.thumbnail).toBeNull();
+		expect(result?.fediverseCreator).toBe('@anotheruser@misskey.io');
+	});
+
+	test('Note with non-image files', async () => {
+		const { summarize } = await import('@/plugins/misskey.js');
+		const apiResponse = {
+			id: 'video123',
+			user: {
+				username: 'videouser',
+				name: 'Video User',
+				avatarUrl: 'https://misskey.io/avatar2.png',
+			},
+			text: 'Note with video file',
+			repliesCount: 0,
+			renoteCount: 0,
+			reactions: {},
+			files: [
+				{
+					type: 'video/mp4',
+					url: 'https://misskey.io/files/video.mp4',
+				},
+				{
+					type: 'application/pdf',
+					url: 'https://misskey.io/files/document.pdf',
+				},
+			],
+		};
+
+		setupMockJsonResponse('https://misskey.io/api/notes/show', apiResponse);
+
+		const result = await summarize(new URL('https://misskey.io/notes/video123'));
+		
+		expect(result).not.toBeNull();
+		expect(result?.thumbnail).toBeNull(); // No image files
+	});
+
+	test('Failed API response', async () => {
+		const { summarize } = await import('@/plugins/misskey.js');
+		setupMockStatusResponse('https://misskey.io/api/notes/show', 404);
+
+		const result = await summarize(new URL('https://misskey.io/notes/notfound'));
+		
+		expect(result).toBeNull();
+	});
+});
