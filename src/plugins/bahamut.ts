@@ -9,7 +9,12 @@ export function test(url: URL): boolean {
 	if (hostname !== 'forum.gamer.com.tw' && hostname !== 'm.gamer.com.tw') {
 		return false;
 	}
-	return /^\/(C|Co)\.php$/.test(url.pathname) && url.searchParams.has('bsn');
+	// For mobile URLs, check /forum/C.php or /forum/Co.php
+	// For desktop URLs, check /C.php or /Co.php
+	const pathPattern = hostname === 'm.gamer.com.tw'
+		? /^\/forum\/(C|Co)\.php$/
+		: /^\/(C|Co)\.php$/;
+	return pathPattern.test(url.pathname) && url.searchParams.has('bsn');
 }
 
 export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promise<Summary | null> {
@@ -17,6 +22,10 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 		// Normalize to desktop version URL
 		const normalizedUrl = new URL(url.href);
 		normalizedUrl.hostname = 'forum.gamer.com.tw';
+		// For mobile URLs, also normalize the path
+		if (url.hostname === 'm.gamer.com.tw') {
+			normalizedUrl.pathname = url.pathname.replace('/forum/', '/');
+		}
 		
 		const res = await scraping(normalizedUrl.href, opts);
 		const $ = res.$;

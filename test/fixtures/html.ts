@@ -341,6 +341,74 @@ export const htmlFixtures = {
 		<p>Hey hey hey syuilo.</p>
 	</body>
 </html>`,
+
+	'ptt-basic.html': `<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="utf-8">
+		<meta property="og:title" content="[新聞] 測試標題">
+		<meta property="og:description" content="測試文章描述內容">
+		<title>[新聞] 測試標題 - 看板 Gossiping - 批踢踢實業坊</title>
+	</head>
+	<body>
+		<div id="main-content">
+			這是測試內容
+			圖片連結: https://example.com/image.jpg
+		</div>
+	</body>
+</html>`,
+
+	'ptt-news.html': `<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="utf-8">
+		<meta property="og:title" content="[新聞] 新聞標題測試">
+		<meta property="og:description" content="1.媒體來源: 測試媒體">
+		<title>[新聞] 新聞標題測試 - 看板 Gossiping - 批踢踢實業坊</title>
+	</head>
+	<body>
+		<div id="main-content">
+			1.媒體來源: 測試媒體
+			2.記者署名: 測試記者
+			3.完整新聞標題: 新聞標題測試
+			4.完整新聞內文:
+			這是新聞內容的第一段
+			這是新聞內容的第二段
+			這是新聞內容的第三段
+			※ 簽名檔會被移除
+			5.完整新聞連結: https://example.com/news
+		</div>
+	</body>
+</html>`,
+
+	'bahamut-basic.html': `<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta property="og:title" content="測試文章標題">
+		<meta property="og:description" content="測試文章內容描述">
+		<meta property="og:image" content="https://example.com/thumbnail.jpg">
+		<title>測試文章標題 - 巴哈姆特</title>
+	</head>
+	<body>
+		<div>文章內容</div>
+	</body>
+</html>`,
+
+	'bahamut-adult.html': `<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta property="og:title" content="成人內容標題">
+		<meta property="og:description" content="成人內容描述">
+		<meta property="og:image" content="https://example.com/adult.jpg">
+		<meta name="rating" content="adult">
+		<title>成人內容標題 - 巴哈姆特</title>
+	</head>
+	<body>
+		<div>成人內容</div>
+	</body>
+</html>`,
 };
 
 /**

@@ -50,9 +50,11 @@ function mockFetch(url: string | URL | Request, init?: RequestInit): Promise<Res
 }
 
 function setupMockResponse(url: string, body: string, headers: Record<string, string> = {}) {
+	const encoder = new TextEncoder();
+	const bodyBytes = encoder.encode(body);
 	const defaultHeaders = {
-		'content-length': String(Buffer.byteLength(body)),
-		'content-type': 'text/html',
+		'content-length': String(bodyBytes.length),
+		'content-type': 'text/html; charset=utf-8',
 		...headers,
 	};
 	mockResponses.set(url, new Response(body, {
@@ -543,5 +545,97 @@ describe('content-length required', () => {
 		}));
 
 		expect(await summaly(host, { contentLengthRequired: false })).toBeDefined();
+	});
+});
+
+describe('PTT Plugin', () => {
+	test('PTT URL matching - valid article URL', async () => {
+		const html = getHtmlFixture('ptt-basic.html');
+		setupMockResponse('https://www.ptt.cc/bbs/Gossiping/M.1234567890.A.ABC.html', html);
+		
+		const result = await summaly('https://www.ptt.cc/bbs/Gossiping/M.1234567890.A.ABC.html');
+		
+		expect(result).toBeDefined();
+		expect(result.title).toBe('[新聞] 測試標題');
+		expect(result.description).toBe('測試文章描述內容');
+		expect(result.sitename).toBe('PTT');
+		expect(result.icon).toBe('https://www.ptt.cc/favicon.ico');
+	});
+
+	test('PTT extracts image from content', async () => {
+		const html = getHtmlFixture('ptt-basic.html');
+		setupMockResponse('https://www.ptt.cc/bbs/Test/M.1234567890.A.XYZ.html', html);
+		
+		const result = await summaly('https://www.ptt.cc/bbs/Test/M.1234567890.A.XYZ.html');
+		
+		expect(result.thumbnail).toBe('https://example.com/image.jpg');
+	});
+
+	test('PTT handles news article format', async () => {
+		const html = getHtmlFixture('ptt-news.html');
+		setupMockResponse('https://www.ptt.cc/bbs/Gossiping/M.1234567890.A.DEF.html', html);
+		
+		const result = await summaly('https://www.ptt.cc/bbs/Gossiping/M.1234567890.A.DEF.html');
+		
+		expect(result.title).toBe('[新聞] 新聞標題測試');
+		// Description should be extracted from news content, not the "1.媒體來源" format
+		expect(result.description).toContain('這是新聞內容');
+		expect(result.description).not.toContain('※');
+	});
+});
+
+describe('Bahamut Plugin', () => {
+	test('Bahamut forum URL matching - C.php', async () => {
+		const html = getHtmlFixture('bahamut-basic.html');
+		setupMockResponse('https://forum.gamer.com.tw/C.php?bsn=60076&snA=12345', html);
+		
+		const result = await summaly('https://forum.gamer.com.tw/C.php?bsn=60076&snA=12345', {
+			contentLengthLimit: 10 * 1024 * 1024,
+		});
+		
+		expect(result).toBeDefined();
+		expect(result.title).toBe('測試文章標題');
+		expect(result.description).toBe('測試文章內容描述');
+		expect(result.sitename).toBe('巴哈姆特');
+		expect(result.icon).toBe('https://i2.bahamut.com.tw/favicon.ico');
+		expect(result.thumbnail).toBe('https://example.com/thumbnail.jpg');
+	});
+
+	test('Bahamut forum URL matching - Co.php', async () => {
+		const html = getHtmlFixture('bahamut-basic.html');
+		setupMockResponse('https://forum.gamer.com.tw/Co.php?bsn=60076&sn=12345', html);
+		
+		const result = await summaly('https://forum.gamer.com.tw/Co.php?bsn=60076&sn=12345', {
+			contentLengthLimit: 10 * 1024 * 1024,
+		});
+		
+		expect(result).toBeDefined();
+		expect(result.title).toBe('測試文章標題');
+	});
+
+	test('Bahamut mobile URL normalization', async () => {
+		const html = getHtmlFixture('bahamut-basic.html');
+		// Mock the desktop version URL since plugin normalizes mobile to desktop
+		setupMockResponse('https://forum.gamer.com.tw/C.php?bsn=60076&snA=12345', html);
+		
+		const result = await summaly('https://m.gamer.com.tw/forum/C.php?bsn=60076&snA=12345', {
+			contentLengthLimit: 10 * 1024 * 1024,
+		});
+		
+		expect(result).toBeDefined();
+		expect(result.title).toBe('測試文章標題');
+	});
+
+	test('Bahamut marks adult content as sensitive', async () => {
+		const html = getHtmlFixture('bahamut-adult.html');
+		setupMockResponse('https://forum.gamer.com.tw/C.php?bsn=60076&snA=99999', html);
+		
+		const result = await summaly('https://forum.gamer.com.tw/C.php?bsn=60076&snA=99999', {
+			contentLengthLimit: 10 * 1024 * 1024,
+		});
+		
+		expect(result).toBeDefined();
+		expect(result.title).toBe('成人內容標題');
+		expect(result.sensitive).toBe(true);
 	});
 });

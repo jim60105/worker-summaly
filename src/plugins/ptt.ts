@@ -78,9 +78,11 @@ function extractNewsContent(text: string): string | null {
 	
 	const content = matches[0]
 		.replace('4.完整新聞內文:', '')
-		.replace(/5\.完整新聞連結.*$/, '')
-		.replace(/^※.*$/gm, '') // Remove signature lines
-		.replace(/^\s*[\r\n]/gm, '') // Remove empty lines
+		.replace(/5\.完整新聞連結.*$/s, '')
+		.split('\n')
+		.filter(line => !line.trim().startsWith('※'))
+		.join('\n')
+		.replace(/^\s*\n/gm, '')
 		.trim();
 	
 	return content.substring(0, 300);
