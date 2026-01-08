@@ -548,6 +548,163 @@ describe('content-length required', () => {
 	});
 });
 
+describe('E-Hentai Plugin', () => {
+	test('正確匹配 E-Hentai 圖庫 URL', async () => {
+		const galleryId = 123456;
+		const galleryToken = 'abc123def';
+		const url = `https://e-hentai.org/g/${galleryId}/${galleryToken}/`;
+
+		// Mock E-Hentai API response
+		setupMockJsonResponse('https://api.e-hentai.org/api.php', {
+			gmetadata: [{
+				gid: galleryId,
+				token: galleryToken,
+				title: 'Test Gallery',
+				title_jpn: 'テストギャラリー',
+				category: 'Manga',
+				thumb: 'https://e-hentai.org/thumb.jpg',
+				uploader: 'testuser',
+				posted: '1234567890',
+				filecount: '10',
+				rating: '4.5',
+				tags: [
+					'artist:test_artist',
+					'female:test_tag',
+					'language:japanese',
+					'parody:test_series',
+				],
+			}],
+		});
+
+		const summary = await summaly(url);
+
+		expect(summary.title).toBe('テストギャラリー');
+		expect(summary.sitename).toBe('E-Hentai');
+		expect(summary.icon).toBe('https://e-hentai.org/favicon.ico');
+		expect(summary.thumbnail).toBe('https://e-hentai.org/thumb.jpg');
+		expect(summary.sensitive).toBe(true);
+		expect(summary.description).toContain('類別: Manga');
+		expect(summary.description).toContain('評分: 4.5');
+		expect(summary.description).toContain('上傳者: testuser');
+		expect(summary.description).toContain('繪師: test_artist');
+		expect(summary.description).toContain('女性: test_tag');
+		expect(summary.description).toContain('語言: japanese');
+		expect(summary.description).toContain('原作: test_series');
+	});
+
+	test('正確匹配 ExHentai URL', async () => {
+		const galleryId = 654321;
+		const galleryToken = 'xyz789abc';
+		const url = `https://exhentai.org/g/${galleryId}/${galleryToken}/`;
+
+		setupMockJsonResponse('https://api.e-hentai.org/api.php', {
+			gmetadata: [{
+				gid: galleryId,
+				token: galleryToken,
+				title: 'ExH Gallery',
+				title_jpn: '',
+				category: 'Doujinshi',
+				thumb: 'https://exhentai.org/thumb.jpg',
+				uploader: 'exuser',
+				posted: '9876543210',
+				filecount: '20',
+				rating: '4.8',
+				tags: ['character:test_char', 'group:test_group'],
+			}],
+		});
+
+		const summary = await summaly(url);
+
+		expect(summary.title).toBe('ExH Gallery');
+		expect(summary.sitename).toBe('E-Hentai');
+		expect(summary.sensitive).toBe(true);
+		expect(summary.description).toContain('角色: test_char');
+		expect(summary.description).toContain('社團: test_group');
+	});
+
+	test('非圖庫 URL 應該不匹配', async () => {
+		const html = getHtmlFixture('basic.html');
+		setupMockResponse('https://e-hentai.org/', html);
+
+		const summary = await summaly('https://e-hentai.org/');
+
+		// Should use general parser, not E-Hentai plugin
+		expect(summary.sitename).not.toBe('E-Hentai');
+	});
+
+	test('API 失敗時應該拋出錯誤', async () => {
+		const url = 'https://e-hentai.org/g/999999/invalid/';
+
+		// Mock API failure
+		setupMockStatusResponse('https://api.e-hentai.org/api.php', 404);
+
+		// When plugin returns null, summaly throws an error
+		await expect(summaly(url)).rejects.toThrow('failed summarize');
+	});
+});
+
+describe('Threads Plugin', () => {
+	test('正確匹配 Threads 貼文 URL', async () => {
+		const url = 'https://www.threads.com/@username/post/ABC123xyz';
+
+		// Mock fixthreads response with complete HTML
+		const htmlContent = '<html><head><title>Test Thread</title><meta property="og:title" content="Test Thread Post" /><meta property="og:description" content="This is a test thread" /><link rel="icon" href="https://fixthreads.net/favicon.ico" /></head><body></body></html>';
+		setupMockResponse('https://fixthreads.net/@username/post/ABC123xyz', htmlContent);
+
+		// Mock favicon check
+		setupMockStatusResponse('https://fixthreads.net/favicon.ico', 200);
+
+		const summary = await summaly(url);
+
+		expect(summary.title).toBe('Test Thread Post');
+		expect(summary.sitename).toBe('Threads');
+		expect(summary.description).toBe('This is a test thread');
+	});
+
+	test('支援不帶 www 的 URL', async () => {
+		const url = 'https://threads.com/@user123/post/DEF456';
+
+		setupMockResponse('https://fixthreads.net/@user123/post/DEF456', `
+			<html>
+				<head>
+					<title>Another Thread</title>
+					<meta property="og:title" content="Thread without WWW" />
+					<link rel="icon" href="https://fixthreads.net/favicon.ico" />
+				</head>
+				<body></body>
+			</html>
+		`);
+
+		// Mock favicon check
+		setupMockStatusResponse('https://fixthreads.net/favicon.ico', 200);
+
+		const summary = await summaly(url);
+
+		expect(summary.title).toBe('Thread without WWW');
+		expect(summary.sitename).toBe('Threads');
+	});
+
+	test('非貼文 URL 應該不匹配', async () => {
+		const html = getHtmlFixture('basic.html');
+		setupMockResponse('https://www.threads.com/@username', html);
+
+		const summary = await summaly('https://www.threads.com/@username');
+
+		// Should use general parser, not Threads plugin
+		expect(summary.sitename).not.toBe('Threads');
+	});
+
+	test('fixthreads 失敗時應該拋出錯誤', async () => {
+		const url = 'https://www.threads.com/@invalid/post/INVALID';
+
+		// Mock fixthreads failure
+		setupMockStatusResponse('https://fixthreads.net/@invalid/post/INVALID', 404);
+
+		// When plugin returns null, summaly throws an error
+		await expect(summaly(url)).rejects.toThrow('failed summarize');
+	});
+});
+
 describe('PTT Plugin', () => {
 	test('PTT URL matching - valid article URL', async () => {
 		const html = getHtmlFixture('ptt-basic.html');

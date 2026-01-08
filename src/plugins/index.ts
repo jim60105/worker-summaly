@@ -3,6 +3,8 @@ import * as bahamut from './bahamut.js';
 import * as ptt from './ptt.js';
 import * as bilibili from './bilibili.js';
 import * as bluesky from './bluesky.js';
+import * as ehentai from './ehentai.js';
+import * as threads from './threads.js';
 import * as misskey from './misskey.js';
 import * as plurk from './plurk.js';
 import * as weibo from './weibo.js';
@@ -20,6 +22,8 @@ export const plugins: SummalyPlugin[] = [
 	ptt,
 	bilibili,
 	bluesky,
+	ehentai,
+	threads,
 	misskey,
 	plurk,
 	weibo,
