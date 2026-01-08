@@ -12,20 +12,23 @@ export function test(url: URL): boolean {
 	
 	// 短連結格式
 	if (hostname === 'vm.tiktok.com' || hostname === 'vt.tiktok.com') {
-		return /^\/[\w]+/.test(url.pathname);
+		return /^\/[\w]{2,}/.test(url.pathname);
 	}
 	
 	return false;
 }
 
 export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promise<Summary | null> {
-	// 建構替代服務 URL
-	const originalUrl = url.href;
+	// 建構替代服務 URL - 只替換 hostname 部分
+	const createProxyUrl = (proxyDomain: string): URL => {
+		const proxyUrl = new URL(url.href);
+		proxyUrl.hostname = proxyUrl.hostname.replace(/tiktok\.com$/, proxyDomain);
+		return proxyUrl;
+	};
 	
 	// 嘗試 tnktok.com
 	try {
-		const tnktokUrl = originalUrl.replace(/tiktok\.com/, 'tnktok.com');
-		const result = await general(new URL(tnktokUrl), opts);
+		const result = await general(createProxyUrl('tnktok.com'), opts);
 		if (result && result.title) {
 			result.sitename = 'TikTok';
 			return result;
@@ -36,8 +39,7 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 	
 	// 備用：嘗試 tiktokez.com
 	try {
-		const tiktokEzUrl = originalUrl.replace(/tiktok\.com/, 'tiktokez.com');
-		const result = await general(new URL(tiktokEzUrl), opts);
+		const result = await general(createProxyUrl('tiktokez.com'), opts);
 		if (result && result.title) {
 			result.sitename = 'TikTok';
 			return result;
