@@ -849,7 +849,7 @@ describe('Misskey Plugin', () => {
 		expect(result?.icon).toBe('https://misskey.io/avatar.png');
 		expect(result?.description).toBe('This is a test note with an image');
 		expect(result?.thumbnail).toBe('https://misskey.io/files/image1.jpg');
-		expect(result?.sitename).toBe('Misskey.io');
+		expect(result?.sitename).toBe('misskey.io');
 		expect(result?.activityPub).toBe('https://misskey.io/notes/abcdef123');
 		expect(result?.fediverseCreator).toBe('@testuser@misskey.io');
 	});

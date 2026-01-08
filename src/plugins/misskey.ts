@@ -1,6 +1,14 @@
 import type Summary from '@/summary.js';
 import { clip } from '@/utils/clip.js';
 
+/**
+ * List of supported Misskey instance domains
+ * Add new Misskey instance domains here to enable support
+ */
+const MISSKEY_DOMAINS = [
+	'misskey.io',
+];
+
 interface MisskeyNoteResponse {
 	id: string;
 	user: {
@@ -20,7 +28,7 @@ interface MisskeyNoteResponse {
 }
 
 export function test(url: URL): boolean {
-	if (url.hostname !== 'misskey.io') return false;
+	if (!MISSKEY_DOMAINS.includes(url.hostname)) return false;
 	// 匹配 /notes/{note_id}
 	return /^\/notes\/[a-zA-Z0-9]+$/.test(url.pathname);
 }
@@ -28,11 +36,12 @@ export function test(url: URL): boolean {
 export async function summarize(url: URL): Promise<Summary | null> {
 	const match = url.pathname.match(/^\/notes\/([a-zA-Z0-9]+)$/);
 	if (!match) return null;
-	
+
 	const noteId = match[1];
-	
+	const domain = url.hostname;
+
 	try {
-		const response = await fetch('https://misskey.io/api/notes/show', {
+		const response = await fetch(`https://${domain}/api/notes/show`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -40,11 +49,11 @@ export async function summarize(url: URL): Promise<Summary | null> {
 			body: JSON.stringify({ noteId }),
 			signal: AbortSignal.timeout(2000),
 		});
-		
+
 		if (!response.ok) return null;
-		
+
 		const data = await response.json() as MisskeyNoteResponse;
-		
+
 		return buildSummary(data, url);
 	} catch {
 		return null;
@@ -52,20 +61,22 @@ export async function summarize(url: URL): Promise<Summary | null> {
 }
 
 function buildSummary(note: MisskeyNoteResponse, url: URL): Summary {
+	const domain = url.hostname;
+
 	// 取得第一張圖片作為縮圖
-	const imageFile = note.files?.find(f => 
-		f.type.startsWith('image/') && 
+	const imageFile = note.files?.find(f =>
+		f.type.startsWith('image/') &&
 		['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(f.type),
 	);
-	
+
 	return {
 		title: note.user.name || note.user.username,
-		icon: note.user.avatarUrl || 'https://misskey.io/favicon.ico',
+		icon: note.user.avatarUrl || `https://${domain}/favicon.ico`,
 		description: note.text ? clip(note.text, 300) : null,
 		thumbnail: imageFile?.url || null,
-		sitename: 'Misskey.io',
+		sitename: domain,
 		player: { url: null, width: null, height: null, allow: [] },
 		activityPub: url.href,
-		fediverseCreator: `@${note.user.username}@misskey.io`,
+		fediverseCreator: `@${note.user.username}@${domain}`,
 	};
 }
