@@ -545,3 +545,165 @@ describe('content-length required', () => {
 		expect(await summaly(host, { contentLengthRequired: false })).toBeDefined();
 	});
 });
+
+describe('Instagram Plugin', () => {
+	describe('URL matching', () => {
+		test('should match standard post URL', async () => {
+			const url = 'https://www.instagram.com/p/ABC123/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://www.ddinstagram.com/p/ABC123/', html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('Instagram');
+		});
+
+		test('should match reel URL', async () => {
+			const url = 'https://www.instagram.com/reel/XYZ789/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://www.ddinstagram.com/reel/XYZ789/', html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('Instagram');
+		});
+
+		test('should match post URL with username', async () => {
+			const url = 'https://www.instagram.com/user.name_123/p/ABC123/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://www.ddinstagram.com/p/ABC123/', html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('Instagram');
+		});
+
+		test('should match reel URL with username', async () => {
+			const url = 'https://www.instagram.com/user.name/reel/XYZ789/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://www.ddinstagram.com/reel/XYZ789/', html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('Instagram');
+		});
+
+		test('should not match user profile URL', async () => {
+			const url = 'https://www.instagram.com/username/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse(url, html);
+			
+			const result = await summaly(url);
+			// Should use general scraping, not Instagram plugin
+			expect(result.sitename).not.toBe('Instagram');
+		});
+	});
+
+	describe('Proxy service fallback', () => {
+		test('should fallback to instagramez when ddinstagram fails', async () => {
+			const url = 'https://www.instagram.com/p/TEST123/';
+			
+			// Mock ddinstagram to fail
+			setupMockStatusResponse('https://www.ddinstagram.com/p/TEST123/', 500);
+			
+			// Mock instagramez to succeed
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://www.instagramez.com/p/TEST123/', html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('Instagram');
+		});
+
+		test('should return null when all services fail', async () => {
+			const url = 'https://www.instagram.com/p/FAIL123/';
+			
+			// Mock both services to fail
+			setupMockStatusResponse('https://www.ddinstagram.com/p/FAIL123/', 500);
+			setupMockStatusResponse('https://www.instagramez.com/p/FAIL123/', 500);
+			
+			await expect(summaly(url)).rejects.toThrow();
+		});
+	});
+});
+
+describe('TikTok Plugin', () => {
+	describe('URL matching', () => {
+		test('should match standard video URL', async () => {
+			const url = 'https://www.tiktok.com/@username/video/1234567890';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://www.tnktok.com/@username/video/1234567890', html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('TikTok');
+		});
+
+		test('should match video URL without www', async () => {
+			const url = 'https://tiktok.com/@user.name-123/video/9876543210';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://tnktok.com/@user.name-123/video/9876543210', html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('TikTok');
+		});
+
+		test('should match short link from vm.tiktok.com', async () => {
+			const url = 'https://vm.tiktok.com/ABC123/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://vm.tnktok.com/ABC123/', html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('TikTok');
+		});
+
+		test('should match short link from vt.tiktok.com', async () => {
+			const url = 'https://vt.tiktok.com/XYZ789/';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://vt.tnktok.com/XYZ789/', html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('TikTok');
+		});
+
+		test('should not match non-video TikTok URL', async () => {
+			const url = 'https://www.tiktok.com/@username';
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse(url, html);
+			
+			const result = await summaly(url);
+			// Should use general scraping, not TikTok plugin
+			expect(result.sitename).not.toBe('TikTok');
+		});
+	});
+
+	describe('Proxy service fallback', () => {
+		test('should fallback to tiktokez when tnktok fails', async () => {
+			const url = 'https://www.tiktok.com/@user/video/123456';
+			
+			// Mock tnktok to fail
+			setupMockStatusResponse('https://www.tnktok.com/@user/video/123456', 500);
+			
+			// Mock tiktokez to succeed
+			const html = getHtmlFixture('basic.html');
+			setupMockResponse('https://www.tiktokez.com/@user/video/123456', html);
+			
+			const result = await summaly(url);
+			expect(result).toBeDefined();
+			expect(result.sitename).toBe('TikTok');
+		});
+
+		test('should return null when all services fail', async () => {
+			const url = 'https://www.tiktok.com/@user/video/999999';
+			
+			// Mock both services to fail
+			setupMockStatusResponse('https://www.tnktok.com/@user/video/999999', 500);
+			setupMockStatusResponse('https://www.tiktokez.com/@user/video/999999', 500);
+			
+			await expect(summaly(url)).rejects.toThrow();
+		});
+	});
+});
