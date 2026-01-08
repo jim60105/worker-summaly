@@ -6,7 +6,7 @@
   "maintainers": [
     "Jim Chen <Jim@ChenJ.im>"
   ],
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "repository": "https://github.com/jim60105/worker-summaly.git",
   "bugs": "https://github.com/jim60105/worker-summaly/issues",
   "main": "./built/index.js",

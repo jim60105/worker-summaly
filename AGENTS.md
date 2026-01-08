@@ -264,7 +264,3 @@ Configuration is in [wrangler.jsonc](wrangler.jsonc):
 3. **Timeout Handling**: Uses `AbortSignal.timeout()` for request timeouts
 4. **CORS**: Properly configured CORS headers for API responses
 5. **Error Handling**: Errors are caught and returned as JSON with appropriate status codes
-
-## License
-
-MIT License - See [LICENSE](LICENSE) for details.
