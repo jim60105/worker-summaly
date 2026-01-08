@@ -22,7 +22,7 @@ describe('Worker Entry Point', () => {
 	it('should return 400 for missing url parameter', async () => {
 		const response = await worker.fetch('/');
 		expect(response.status).toBe(400);
-		
+
 		const json = await response.json<{ error: string }>();
 		expect(json.error).toContain('url');
 	});
@@ -30,7 +30,7 @@ describe('Worker Entry Point', () => {
 	it('should return 400 for invalid url format', async () => {
 		const response = await worker.fetch('/?url=not-a-valid-url');
 		expect(response.status).toBe(400);
-		
+
 		const json = await response.json<{ error: string }>();
 		expect(json.error).toContain('Invalid');
 	});
@@ -38,7 +38,7 @@ describe('Worker Entry Point', () => {
 	it('should return health check response', async () => {
 		const response = await worker.fetch('/health');
 		expect(response.status).toBe(200);
-		
+
 		const json = await response.json<{ status: string }>();
 		expect(json.status).toBe('ok');
 	});
@@ -52,7 +52,7 @@ describe('Worker Entry Point', () => {
 	it('should return 405 for POST requests', async () => {
 		const response = await worker.fetch('/', { method: 'POST' });
 		expect(response.status).toBe(405);
-		
+
 		const json = await response.json<{ error: string }>();
 		expect(json.error).toContain('Method not allowed');
 	});
@@ -60,28 +60,28 @@ describe('Worker Entry Point', () => {
 	it('should return 404 for unknown paths', async () => {
 		const response = await worker.fetch('/unknown');
 		expect(response.status).toBe(404);
-		
+
 		const json = await response.json<{ error: string }>();
 		expect(json.error).toContain('Not found');
 	});
 
-	it.skip('should summarize a valid URL', async () => {
-		// Skip this test for now as it requires real network access
-		// This would need proper mocking setup for integration tests
+	// Skip this test when SKIP_NETWORK_TEST=true as it requires real network access
+	it.skipIf(process.env.SKIP_NETWORK_TEST === 'true')('should summarize a valid URL', async () => {
 		const response = await worker.fetch('/?url=https://example.com');
 		expect(response.status).toBe(200);
-		
+
 		const json = await response.json<{ title: string; url: string }>();
 		expect(json).toHaveProperty('title');
 		expect(json).toHaveProperty('url');
 	});
 
-	it('should summarize Twitter/X URL successfully', async () => {
+	// Skip this test when SKIP_NETWORK_TEST=true as it requires real network access
+	it.skipIf(process.env.SKIP_NETWORK_TEST === 'true')('should summarize Twitter/X URL successfully', async () => {
 		const twitterUrl = 'https://x.com/a_nai_nai/status/2002748391109935561';
 		const response = await worker.fetch(`/?url=${encodeURIComponent(twitterUrl)}`);
-		
+
 		expect(response.status).toBe(200);
-		
+
 		const json = await response.json<{
 			title: string | null;
 			icon: string | null;
@@ -94,7 +94,7 @@ describe('Worker Entry Point', () => {
 			fediverseCreator: string | null;
 			url: string;
 		}>();
-		
+
 		// Verify the response structure
 		expect(json).toHaveProperty('title');
 		expect(json).toHaveProperty('url');
@@ -103,11 +103,11 @@ describe('Worker Entry Point', () => {
 		expect(json).toHaveProperty('sitename');
 		expect(json.url).toBe(twitterUrl);
 		expect(json.sitename).toBe('X (Twitter)');
-		
+
 		// Verify the response has valid content (not null/empty)
 		expect(json.title).toBeTruthy();
 		expect(json.description).toBeTruthy();
-		
+
 		console.log('Twitter/X Summary Result:', JSON.stringify(json, null, 2));
 	});
 });

@@ -237,10 +237,24 @@ SUMMALY_ALLOW_PRIVATE_IP=true pnpm test
 ```
 
 ### SKIP_NETWORK_TEST
-Skips tests that require real network access:
+Skips tests that require real network access (only affects worker integration tests). There are two ways to use this:
+
+#### Method 1: Environment Variable (CI/CD)
+
 ```bash
-SKIP_NETWORK_TEST=true pnpm test
+SKIP_NETWORK_TEST=true pnpm test:worker
 ```
+
+#### Method 2: .env.test File (Local Development)
+
+Create a `.env.test` file in the project root:
+
+```bash
+echo "SKIP_NETWORK_TEST=true" > .env.test
+```
+
+The `.env.test` file is automatically loaded by the worker test configuration and is ignored by git.
+This is the recommended approach for local development as some terminals may not properly pass inline environment variables.
 
 ## Continuous Integration
 
