@@ -2553,7 +2553,7 @@ describe('Pixiv Plugin', () => {
 
 	test('Ajax API response - network error returns null', async () => {
 		const { summarize } = await import('@/plugins/pixiv.js');
-		
+
 		setupMockStatusResponse('https://www.pixiv.net/ajax/illust/88888', 500);
 
 		const result = await summarize(new URL('https://www.pixiv.net/artworks/88888'));
@@ -2630,5 +2630,527 @@ describe('Pixiv Plugin', () => {
 		expect(result?.description).toContain('標籤: tag1, tag2, tag3, tag4, tag5');
 		expect(result?.description).not.toContain('tag6');
 		expect(result?.description).not.toContain('tag7');
+	});
+});
+
+describe('YouTube Plugin (oEmbed)', () => {
+	test('URL matching - youtube.com/watch', async () => {
+		const { test } = await import('@/plugins/youtube.js');
+		expect(test(new URL('https://www.youtube.com/watch?v=dQw4w9WgXcQ'))).toBe(true);
+		expect(test(new URL('https://youtube.com/watch?v=dQw4w9WgXcQ'))).toBe(true);
+	});
+
+	test('URL matching - youtube.com/v', async () => {
+		const { test } = await import('@/plugins/youtube.js');
+		expect(test(new URL('https://www.youtube.com/v/dQw4w9WgXcQ'))).toBe(true);
+	});
+
+	test('URL matching - youtube.com/shorts', async () => {
+		const { test } = await import('@/plugins/youtube.js');
+		expect(test(new URL('https://www.youtube.com/shorts/dQw4w9WgXcQ'))).toBe(true);
+	});
+
+	test('URL matching - youtube.com/playlist', async () => {
+		const { test } = await import('@/plugins/youtube.js');
+		expect(test(new URL('https://www.youtube.com/playlist?list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf'))).toBe(true);
+	});
+
+	test('URL matching - youtu.be short links', async () => {
+		const { test } = await import('@/plugins/youtube.js');
+		expect(test(new URL('https://youtu.be/dQw4w9WgXcQ'))).toBe(true);
+	});
+
+	test('URL matching - music.youtube.com subdomain', async () => {
+		const { test } = await import('@/plugins/youtube.js');
+		expect(test(new URL('https://music.youtube.com/watch?v=dQw4w9WgXcQ'))).toBe(true);
+	});
+
+	test('URL matching - other domain should not match', async () => {
+		const { test } = await import('@/plugins/youtube.js');
+		expect(test(new URL('https://example.com/watch?v=dQw4w9WgXcQ'))).toBe(false);
+	});
+
+	test('URL matching - non-video paths should not match', async () => {
+		const { test } = await import('@/plugins/youtube.js');
+		expect(test(new URL('https://www.youtube.com/channel/UCtest'))).toBe(false);
+		expect(test(new URL('https://www.youtube.com/@username'))).toBe(false);
+	});
+
+	test('oEmbed response - video', async () => {
+		const { summarize } = await import('@/plugins/youtube.js');
+		const oEmbedResponse = {
+			type: 'video',
+			version: '1.0',
+			title: 'Rick Astley - Never Gonna Give You Up',
+			author_name: 'Rick Astley',
+			author_url: 'https://www.youtube.com/@RickAstleyYT',
+			provider_name: 'YouTube',
+			provider_url: 'https://www.youtube.com/',
+			thumbnail_url: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+			thumbnail_width: 480,
+			thumbnail_height: 360,
+			html: '<iframe width="200" height="113" src="https://www.youtube.com/embed/dQw4w9WgXcQ?feature=oembed" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen title="Rick Astley - Never Gonna Give You Up"></iframe>',
+			width: 200,
+			height: 113,
+		};
+
+		setupMockJsonResponse('https://www.youtube.com/oembed?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DdQw4w9WgXcQ&format=json', oEmbedResponse);
+
+		const result = await summarize(new URL('https://www.youtube.com/watch?v=dQw4w9WgXcQ'));
+
+		expect(result).not.toBeNull();
+		expect(result?.title).toBe('Rick Astley - Never Gonna Give You Up');
+		expect(result?.thumbnail).toBe('https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg');
+		expect(result?.sitename).toBe('YouTube');
+		expect(result?.player.url).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ?feature=oembed');
+		expect(result?.player.width).toBe(200);
+		expect(result?.player.height).toBe(113);
+		expect(result?.description).toBeNull(); // oEmbed doesn't provide description
+	});
+
+	test('oEmbed response - invalid type returns null', async () => {
+		const { summarize } = await import('@/plugins/youtube.js');
+		const oEmbedResponse = {
+			type: 'photo', // Invalid type for video
+			version: '1.0',
+			title: 'Test',
+			html: '<img src="test.jpg" />',
+			width: 200,
+			height: 200,
+		};
+
+		setupMockJsonResponse('https://www.youtube.com/oembed?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3Dinvalid&format=json', oEmbedResponse);
+
+		const result = await summarize(new URL('https://www.youtube.com/watch?v=invalid'));
+
+		expect(result).toBeNull();
+	});
+
+	test('oEmbed response - API error returns null', async () => {
+		const { summarize } = await import('@/plugins/youtube.js');
+		setupMockStatusResponse('https://www.youtube.com/oembed?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3Dnotfound&format=json', 404);
+
+		const result = await summarize(new URL('https://www.youtube.com/watch?v=notfound'));
+
+		expect(result).toBeNull();
+	});
+});
+
+describe('Spotify Plugin (oEmbed)', () => {
+	test('URL matching - open.spotify.com', async () => {
+		const { test } = await import('@/plugins/spotify.js');
+		expect(test(new URL('https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC'))).toBe(true);
+		expect(test(new URL('https://open.spotify.com/album/4uLU6hMCjMI75M1A2tKUQC'))).toBe(true);
+		expect(test(new URL('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M'))).toBe(true);
+	});
+
+	test('URL matching - other domain should not match', async () => {
+		const { test } = await import('@/plugins/spotify.js');
+		expect(test(new URL('https://spotify.com/track/123'))).toBe(false);
+		expect(test(new URL('https://example.com/track/123'))).toBe(false);
+	});
+
+	test('oEmbed response - track', async () => {
+		const { summarize } = await import('@/plugins/spotify.js');
+		const oEmbedResponse = {
+			type: 'rich',
+			version: '1.0',
+			title: 'Test Track - Test Artist',
+			provider_name: 'Spotify',
+			provider_url: 'https://spotify.com',
+			thumbnail_url: 'https://i.scdn.co/image/ab67616d0000b273test',
+			thumbnail_width: 300,
+			thumbnail_height: 300,
+			html: '<iframe style="border-radius: 12px" width="100%" height="152" src="https://open.spotify.com/embed/track/4uLU6hMCjMI75M1A2tKUQC" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>',
+			width: 456,
+			height: 152,
+		};
+
+		setupMockJsonResponse('https://open.spotify.com/oembed?url=https%3A%2F%2Fopen.spotify.com%2Ftrack%2F4uLU6hMCjMI75M1A2tKUQC', oEmbedResponse);
+
+		const result = await summarize(new URL('https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC'));
+
+		expect(result).not.toBeNull();
+		expect(result?.title).toBe('Test Track - Test Artist');
+		expect(result?.thumbnail).toBe('https://i.scdn.co/image/ab67616d0000b273test');
+		expect(result?.sitename).toBe('Spotify');
+		expect(result?.player.url).toBe('https://open.spotify.com/embed/track/4uLU6hMCjMI75M1A2tKUQC');
+		expect(result?.player.width).toBe(456);
+		expect(result?.player.height).toBe(152);
+		expect(result?.description).toBeNull();
+	});
+
+	test('oEmbed response - API error returns null', async () => {
+		const { summarize } = await import('@/plugins/spotify.js');
+		setupMockStatusResponse('https://open.spotify.com/oembed?url=https%3A%2F%2Fopen.spotify.com%2Ftrack%2Fnotfound', 404);
+
+		const result = await summarize(new URL('https://open.spotify.com/track/notfound'));
+
+		expect(result).toBeNull();
+	});
+});
+
+describe('DLsite Plugin', () => {
+	test('URL matching - www.dlsite.com', async () => {
+		const { test } = await import('@/plugins/dlsite.js');
+		expect(test(new URL('https://www.dlsite.com/maniax/work/=/product_id/RJ123456.html'))).toBe(true);
+		expect(test(new URL('https://www.dlsite.com/home/work/=/product_id/RJ123456.html'))).toBe(true);
+	});
+
+	test('URL matching - other domain should not match', async () => {
+		const { test } = await import('@/plugins/dlsite.js');
+		expect(test(new URL('https://dlsite.com/maniax/work/123'))).toBe(false);
+		expect(test(new URL('https://example.com/dlsite/123'))).toBe(false);
+	});
+
+	test('Adult content (maniax) is marked sensitive', async () => {
+		const html = getHtmlFixture('basic.html');
+		setupMockResponse('https://www.dlsite.com/maniax/work/=/product_id/RJ123456.html', html);
+
+		const summary = await summaly('https://www.dlsite.com/maniax/work/=/product_id/RJ123456.html');
+
+		expect(summary.sensitive).toBe(true);
+	});
+
+	test('SFW content (home) is not marked sensitive', async () => {
+		const html = getHtmlFixture('basic.html');
+		setupMockResponse('https://www.dlsite.com/home/work/=/product_id/RJ123456.html', html);
+
+		const summary = await summaly('https://www.dlsite.com/home/work/=/product_id/RJ123456.html');
+
+		expect(summary.sensitive).toBe(false);
+	});
+
+	test('SFW content (soft) is not marked sensitive', async () => {
+		const html = getHtmlFixture('basic.html');
+		setupMockResponse('https://www.dlsite.com/soft/work/=/product_id/VJ123456.html', html);
+
+		const summary = await summaly('https://www.dlsite.com/soft/work/=/product_id/VJ123456.html');
+
+		expect(summary.sensitive).toBe(false);
+	});
+
+	test('URL correction - announce to work fallback', async () => {
+		// First URL returns 404
+		mockResponses.set('https://www.dlsite.com/maniax/announce/=/product_id/RJ999999.html', new Response(null, { status: 404 }));
+
+		// Corrected URL returns success
+		const html = getHtmlFixture('basic.html');
+		setupMockResponse('https://www.dlsite.com/maniax/work/=/product_id/RJ999999.html', html);
+
+		const summary = await summaly('https://www.dlsite.com/maniax/announce/=/product_id/RJ999999.html');
+
+		expect(summary).toBeDefined();
+		expect(summary.sensitive).toBe(true);
+	});
+
+	test('URL correction - work to announce fallback', async () => {
+		// First URL returns 404
+		mockResponses.set('https://www.dlsite.com/maniax/work/=/product_id/RJ888888.html', new Response(null, { status: 404 }));
+
+		// Corrected URL returns success
+		const html = getHtmlFixture('basic.html');
+		setupMockResponse('https://www.dlsite.com/maniax/announce/=/product_id/RJ888888.html', html);
+
+		const summary = await summaly('https://www.dlsite.com/maniax/work/=/product_id/RJ888888.html');
+
+		expect(summary).toBeDefined();
+		expect(summary.sensitive).toBe(true);
+	});
+
+	test('Both URLs fail returns null', async () => {
+		// Both URLs return 404
+		mockResponses.set('https://www.dlsite.com/maniax/work/=/product_id/RJ000000.html', new Response(null, { status: 404 }));
+		mockResponses.set('https://www.dlsite.com/maniax/announce/=/product_id/RJ000000.html', new Response(null, { status: 404 }));
+
+		const { summarize } = await import('@/plugins/dlsite.js');
+		const result = await summarize(new URL('https://www.dlsite.com/maniax/work/=/product_id/RJ000000.html'));
+
+		expect(result).toBeNull();
+	});
+});
+
+describe('Nijie Plugin', () => {
+	test('URL matching - nijie.info', async () => {
+		const { test } = await import('@/plugins/nijie.js');
+		expect(test(new URL('https://nijie.info/view.php?id=123456'))).toBe(true);
+		expect(test(new URL('https://nijie.info/members.php?id=12345'))).toBe(true);
+	});
+
+	test('URL matching - other domain should not match', async () => {
+		const { test } = await import('@/plugins/nijie.js');
+		expect(test(new URL('https://example.com/view.php?id=123'))).toBe(false);
+	});
+
+	test('All Nijie content is marked sensitive', async () => {
+		const html = getHtmlFixture('basic.html');
+		setupMockResponse('https://nijie.info/members.php?id=12345', html);
+
+		const summary = await summaly('https://nijie.info/members.php?id=12345');
+
+		expect(summary.sensitive).toBe(true);
+	});
+
+	test('view.php with LD+JSON ImageObject extracts thumbnail', async () => {
+		const htmlWithLdJson = `<!DOCTYPE html>
+<html>
+<head>
+	<title>Test Nijie Image</title>
+	<script type="application/ld+json">
+	{
+		"@context": "https://schema.org",
+		"@type": "ImageObject",
+		"name": "Test Image",
+		"thumbnailUrl": "https://nijie.info/pic/thumb/test123.jpg"
+	}
+	</script>
+</head>
+<body></body>
+</html>`;
+
+		setupMockResponse('https://nijie.info/view.php?id=123456', htmlWithLdJson);
+
+		const summary = await summaly('https://nijie.info/view.php?id=123456');
+
+		expect(summary.thumbnail).toBe('https://nijie.info/pic/thumb/test123.jpg');
+		expect(summary.sensitive).toBe(true);
+	});
+
+	test('view.php without LD+JSON keeps original thumbnail', async () => {
+		const htmlWithOgImage = `<!DOCTYPE html>
+<html>
+<head>
+	<title>Test Nijie Image</title>
+	<meta property="og:image" content="https://nijie.info/pic/og/original.jpg" />
+</head>
+<body></body>
+</html>`;
+
+		setupMockResponse('https://nijie.info/view.php?id=789012', htmlWithOgImage);
+
+		const summary = await summaly('https://nijie.info/view.php?id=789012');
+
+		expect(summary.thumbnail).toBe('https://nijie.info/pic/og/original.jpg');
+		expect(summary.sensitive).toBe(true);
+	});
+});
+
+describe('Iwara Plugin', () => {
+	test('URL matching - www.iwara.tv', async () => {
+		const { test } = await import('@/plugins/iwara.js');
+		expect(test(new URL('https://www.iwara.tv/video/abc123'))).toBe(true);
+	});
+
+	test('URL matching - ecchi.iwara.tv', async () => {
+		const { test } = await import('@/plugins/iwara.js');
+		expect(test(new URL('https://ecchi.iwara.tv/video/xyz789'))).toBe(true);
+	});
+
+	test('URL matching - other domain should not match', async () => {
+		const { test } = await import('@/plugins/iwara.js');
+		expect(test(new URL('https://example.com/video/123'))).toBe(false);
+		expect(test(new URL('https://iwara.tv/video/123'))).toBe(false);
+	});
+
+	test('www.iwara.tv is not marked sensitive by default', async () => {
+		const html = `<!DOCTYPE html>
+<html>
+<head>
+	<title>Test Video</title>
+	<meta property="og:description" content="Test description" />
+</head>
+<body>
+	<div id="video-player" poster="https://www.iwara.tv/poster.jpg"></div>
+</body>
+</html>`;
+		setupMockResponse('https://www.iwara.tv/video/abc123', html);
+
+		const summary = await summaly('https://www.iwara.tv/video/abc123');
+
+		expect(summary.sensitive).toBe(false);
+	});
+
+	test('ecchi.iwara.tv is marked sensitive', async () => {
+		const html = `<!DOCTYPE html>
+<html>
+<head>
+	<title>Test Video</title>
+</head>
+<body></body>
+</html>`;
+		setupMockResponse('https://ecchi.iwara.tv/video/xyz789', html);
+
+		const summary = await summaly('https://ecchi.iwara.tv/video/xyz789');
+
+		expect(summary.sensitive).toBe(true);
+	});
+
+	test('Thumbnail extracted from video player poster', async () => {
+		const html = `<!DOCTYPE html>
+<html>
+<head>
+	<title>Test Video</title>
+</head>
+<body>
+	<div id="video-player" poster="/files/poster/video123.jpg"></div>
+</body>
+</html>`;
+		setupMockResponse('https://www.iwara.tv/video/abc123', html);
+
+		const summary = await summaly('https://www.iwara.tv/video/abc123');
+
+		expect(summary.thumbnail).toBe('https://www.iwara.tv/files/poster/video123.jpg');
+	});
+
+	test('Thumbnail extracted from field images fallback', async () => {
+		const html = `<!DOCTYPE html>
+<html>
+<head>
+	<title>Test Image Post</title>
+</head>
+<body>
+	<div class="field-name-field-images">
+		<a href="/files/images/image123.jpg">Image</a>
+	</div>
+</body>
+</html>`;
+		setupMockResponse('https://www.iwara.tv/images/def456', html);
+
+		const summary = await summaly('https://www.iwara.tv/images/def456');
+
+		expect(summary.thumbnail).toBe('https://www.iwara.tv/files/images/image123.jpg');
+	});
+
+	test('Description extracted from field-type-text-with-summary', async () => {
+		const html = `<!DOCTYPE html>
+<html>
+<head>
+	<title>Test Video</title>
+</head>
+<body>
+	<div class="field-type-text-with-summary">This is the video description text.</div>
+</body>
+</html>`;
+		setupMockResponse('https://www.iwara.tv/video/ghi789', html);
+
+		const summary = await summaly('https://www.iwara.tv/video/ghi789');
+
+		expect(summary.description).toBe('This is the video description text.');
+	});
+});
+
+describe('Komiflo Plugin', () => {
+	test('URL matching - komiflo.com', async () => {
+		const { test } = await import('@/plugins/komiflo.js');
+		expect(test(new URL('https://komiflo.com/comics/12345'))).toBe(true);
+		expect(test(new URL('https://komiflo.com/#!/comics/67890'))).toBe(true);
+	});
+
+	test('URL matching - other domain should not match', async () => {
+		const { test } = await import('@/plugins/komiflo.js');
+		expect(test(new URL('https://example.com/comics/123'))).toBe(false);
+	});
+
+	test('All Komiflo content is marked sensitive', async () => {
+		const html = getHtmlFixture('basic.html');
+		setupMockResponse('https://komiflo.com/page/123', html);
+
+		const summary = await summaly('https://komiflo.com/page/123');
+
+		expect(summary.sensitive).toBe(true);
+	});
+
+	test('Comics page with valid thumbnail keeps original', async () => {
+		const htmlWithThumbnail = `<!DOCTYPE html>
+<html>
+<head>
+	<title>Test Comic</title>
+	<meta property="og:image" content="https://komiflo.com/valid/thumbnail.jpg" />
+</head>
+<body></body>
+</html>`;
+		setupMockResponse('https://komiflo.com/comics/12345', htmlWithThumbnail);
+
+		const summary = await summaly('https://komiflo.com/comics/12345');
+
+		expect(summary.thumbnail).toBe('https://komiflo.com/valid/thumbnail.jpg');
+		expect(summary.sensitive).toBe(true);
+	});
+
+	test('Comics page with placeholder thumbnail fetches from API', async () => {
+		const htmlWithPlaceholder = `<!DOCTYPE html>
+<html>
+<head>
+	<title>Test Comic</title>
+	<meta property="og:image" content="https://komiflo.com/ogp_logo.png" />
+</head>
+<body></body>
+</html>`;
+		setupMockResponse('https://komiflo.com/comics/54321', htmlWithPlaceholder);
+
+		const apiResponse = {
+			content: {
+				named_imgs: {
+					cover: {
+						filename: 'cover_54321.jpg',
+						variants: ['346_mobile', '692_tablet'],
+					},
+				},
+			},
+		};
+		setupMockJsonResponse('https://api.komiflo.com/content/id/54321', apiResponse);
+
+		const summary = await summaly('https://komiflo.com/comics/54321');
+
+		expect(summary.thumbnail).toBe('https://t.komiflo.com/346_mobile/cover_54321.jpg');
+		expect(summary.sensitive).toBe(true);
+	});
+
+	test('Comics page API returns thumbnail from children', async () => {
+		const htmlWithFavicon = `<!DOCTYPE html>
+<html>
+<head>
+	<title>Test Comic</title>
+	<meta property="og:image" content="https://komiflo.com/favicon.ico" />
+</head>
+<body></body>
+</html>`;
+		setupMockResponse('https://komiflo.com/comics/99999', htmlWithFavicon);
+
+		const apiResponse = {
+			content: {
+				children: [{
+					named_imgs: {
+						cover: {
+							filename: 'child_cover.jpg',
+							variants: ['346_mobile'],
+						},
+					},
+				}],
+			},
+		};
+		setupMockJsonResponse('https://api.komiflo.com/content/id/99999', apiResponse);
+
+		const summary = await summaly('https://komiflo.com/comics/99999');
+
+		expect(summary.thumbnail).toBe('https://t.komiflo.com/346_mobile/child_cover.jpg');
+	});
+
+	test('Comics page API failure keeps original thumbnail', async () => {
+		const htmlWithFavicon = `<!DOCTYPE html>
+<html>
+<head>
+	<title>Test Comic</title>
+	<meta property="og:image" content="https://komiflo.com/favicon.ico" />
+</head>
+<body></body>
+</html>`;
+		setupMockResponse('https://komiflo.com/comics/88888', htmlWithFavicon);
+		setupMockStatusResponse('https://api.komiflo.com/content/id/88888', 500);
+
+		const summary = await summaly('https://komiflo.com/comics/88888');
+
+		expect(summary.thumbnail).toBe('https://komiflo.com/favicon.ico');
+		expect(summary.sensitive).toBe(true);
 	});
 });

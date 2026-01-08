@@ -101,28 +101,27 @@ curl "https://your-worker.workers.dev/?url=https://www.youtube.com/watch?v=dQw4w
 
 ```json
 {
-  "title": "Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)",
-  "icon": "https://m.youtube.com/static/favicon.ico",
-  "description": "The official video for “Never Gonna Give You Up” by Rick Astley. \n\nNever: The Autobiography 📚 OUT NOW! \nFollow this link to get your copy and listen to Rick’s ‘Never’ playlist ❤️ #RickAstleyNever\nhttps://linktr.ee/rickastleynever\n\n“Never Gonna Give You Up” was a global smash on its release in July ...",
-  "thumbnail": "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
-  "player": {
-    "url": "https://www.youtube.com/embed/dQw4w9WgXcQ?feature=oembed",
-    "width": 200,
-    "height": 113,
-    "allow": [
-      "autoplay",
-      "clipboard-write",
-      "encrypted-media",
-      "picture-in-picture",
-      "web-share",
-      "fullscreen"
-    ]
-  },
-  "sitename": "YouTube",
-  "sensitive": false,
-  "activityPub": null,
-  "fediverseCreator": null,
-  "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+ "title": "Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)",
+ "icon": "https://www.youtube.com/s/desktop/014dbbed/img/favicon_32x32.png",
+ "description": null,
+ "thumbnail": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+ "sitename": "YouTube",
+ "player": {
+   "url": "https://www.youtube.com/embed/dQw4w9WgXcQ?feature=oembed",
+   "width": 200,
+   "height": 113,
+   "allow": [
+     "autoplay",
+     "clipboard-write",
+     "encrypted-media",
+     "fullscreen",
+     "picture-in-picture"
+   ]
+ },
+ "sensitive": false,
+ "activityPub": null,
+ "fediverseCreator": null,
+ "url": "https://m.youtube.com/watch?v=dQw4w9WgXcQ"
 }
 ```
 
