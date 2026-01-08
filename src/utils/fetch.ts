@@ -140,6 +140,7 @@ export async function get(url: string): Promise<string> {
 		method: 'GET',
 		headers: {
 			'accept': '*/*',
+			'user-agent': DEFAULT_BOT_UA,
 		},
 	});
 
@@ -155,6 +156,7 @@ export async function head(url: string): Promise<Response> {
 		method: 'HEAD',
 		headers: {
 			'accept': '*/*',
+			'user-agent': DEFAULT_BOT_UA,
 		},
 	});
 }
