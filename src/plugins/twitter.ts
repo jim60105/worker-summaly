@@ -2,6 +2,11 @@ import summary from '@/summary.js';
 import { get } from '@/utils/fetch.js';
 import { clip } from '@/utils/clip.js';
 
+/**
+ * Twitter/X plugin - Extracts tweet metadata using fxtwitter and vxtwitter APIs
+ * Merged with master on 2026-01-08
+ */
+
 interface FxTwitterResponse {
 	tweet: {
 		author: {
