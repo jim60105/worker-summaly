@@ -2,7 +2,9 @@
 
 A fast, edge-based web page summarization API powered by **Cloudflare Workers**. Extract metadata, Open Graph tags, Twitter Cards, oEmbed players, and more from any URL at lightning speed.
 
-Forked from [misskey-dev/summaly](https://github.com/misskey-dev/summaly) and completely rewritten for the Cloudflare Workers platform.
+For your Misskey instance to display link previews and summaries.
+
+![Misskey Control Panel](https://github.com/user-attachments/assets/1391be0a-522d-4921-a5e5-efcef67006ff)
 
 ## ✨ Features
 
