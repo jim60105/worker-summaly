@@ -13,7 +13,7 @@ export function test(url: URL): boolean {
 	// /{username}/p/{shortcode}/ - user post
 	// /{username}/reel/{shortcode}/ - user reel
 	return /^\/([\w.]+\/)?(p|reel)\/[a-zA-Z0-9_-]+\/?$/.test(url.pathname);
-} 
+}
 
 export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promise<Summary | null> {
 	// Instagram cannot currently be scraped directly because it requires login or complex authentication

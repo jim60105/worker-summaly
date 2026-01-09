@@ -12,11 +12,57 @@ Worker Summaly extracts metadata from web pages including:
 - ActivityPub and Fediverse creator metadata
 - Sensitive content detection via HTTP headers and meta tags
 
-### Built-in Plugins
+### Key Features
 
+- **Edge-Native Architecture**: Runs on Cloudflare's global edge network for minimal latency
+- **24 Specialized Plugins**: Domain-specific handlers for major platforms
+- **TypeScript**: Fully typed with strict mode enabled
+- **Zero Dependencies Runtime**: Only 3 runtime dependencies (cheerio, escape-regexp, html-entities)
+- **Comprehensive Testing**: 220 tests across unit, plugin, and integration test suites
+- **CORS Enabled**: Ready for browser-based applications
+- **Modern ES Modules**: No CommonJS, pure ESM throughout
+
+### Built-in Plugins (24 Total)
+
+**Social Media & Communication:**
+
+- **Twitter/X** - Enhanced metadata extraction for tweets using FxTwitter/VxTwitter APIs
+- **Threads** - Meta's Threads platform support
+- **Bluesky** - Decentralized social network support
+- **Misskey** - Japanese microblogging platform (Fediverse)
+- **Plurk** - Timeline-based social network
+- **Weibo** - Chinese microblogging platform
+- **Instagram** - Instagram posts and reels (currently non-functional due to platform restrictions)
+
+**Video & Streaming:**
+
+- **YouTube** - Video metadata and oEmbed player embedding
+- **TikTok** - Short-form video content
+- **Bilibili** - Chinese video sharing platform
+- **Iwara** - Video sharing platform with sensitive content detection
+- **Spotify** - Music and podcast streaming via oEmbed
+
+**Content Platforms:**
+
+- **Wikipedia** - Encyclopedia articles with API integration
 - **Amazon** - Product page metadata extraction
-- **Bluesky** - Social post metadata handling
-- **Wikipedia** - API-based article summarization
+- **DLsite** - Digital content marketplace
+- **Bahamut** - Taiwanese gaming and anime community
+- **PTT** - Taiwan's largest online forum
+- **Komiflo** - Comic platform
+- **E-Hentai** - Adult content platform
+
+**Art & Creative:**
+
+- **Pixiv** - Japanese illustration community using Ajax API
+- **Nijie** - Japanese art community
+
+**E-commerce:**
+
+- **PChome** - Taiwanese e-commerce platform (PChome 24h)
+
+**Other Services:**
+
 - **Branch.io** - Deep link resolution
 
 ## Project Structure
@@ -28,12 +74,31 @@ src/
 ├── general.ts            # HTML parsing logic, oEmbed player detection
 ├── summary.ts            # TypeScript type definitions (Summary/SummalyResult)
 ├── iplugin.ts            # Plugin interface definition
-├── plugins/              # Built-in plugins
+├── plugins/              # Built-in plugins (24 total)
 │   ├── index.ts          # Plugin registry
-│   ├── amazon.ts         # Amazon product page handler
-│   ├── bluesky.ts        # Bluesky social posts handler
-│   ├── wikipedia.ts      # Wikipedia API integration
-│   └── branchio-deeplinks.ts  # Branch.io deep link resolver
+│   ├── amazon.ts         # Amazon product pages
+│   ├── bahamut.ts        # Bahamut forum posts
+│   ├── ptt.ts            # PTT forum posts
+│   ├── bilibili.ts       # Bilibili videos and opus
+│   ├── bluesky.ts        # Bluesky social posts
+│   ├── dlsite.ts         # DLsite products
+│   ├── ehentai.ts        # E-Hentai galleries
+│   ├── iwara.ts          # Iwara videos
+│   ├── komiflo.ts        # Komiflo comics
+│   ├── nijie.ts          # Nijie illustrations
+│   ├── threads.ts        # Threads posts
+│   ├── misskey.ts        # Misskey notes
+│   ├── plurk.ts          # Plurk posts
+│   ├── spotify.ts        # Spotify oEmbed
+│   ├── weibo.ts          # Weibo posts
+│   ├── instagram.ts      # Instagram posts/reels
+│   ├── pchome.ts         # PChome products
+│   ├── tiktok.ts         # TikTok videos
+│   ├── twitter.ts        # Twitter/X tweets
+│   ├── pixiv.ts          # Pixiv artworks
+│   ├── wikipedia.ts      # Wikipedia articles
+│   ├── youtube.ts        # YouTube oEmbed
+│   └── branchio-deeplinks.ts  # Branch.io deep links
 └── utils/
     ├── fetch.ts          # HTTP client using native fetch API
     ├── encoding.ts       # Character encoding detection/conversion
@@ -226,9 +291,14 @@ Built-in plugins are registered in [src/plugins/index.ts](src/plugins/index.ts).
 ### Test Structure
 
 - `test/index.test.ts` - Core summaly functionality tests (57 tests)
-- `test/plugins/*.test.ts` - Plugin-specific tests (20 files, ~150 tests)
-- `test/worker.test.ts` - Worker HTTP endpoint integration tests
-- `test/utils/test-utils.ts` - Shared mock utilities
+- `test/plugins/*.test.ts` - Plugin-specific tests (20 test files, 156 tests total)
+- `test/worker.test.ts` - Worker HTTP endpoint integration tests (7 tests)
+- `test/utils/test-utils.ts` - Shared mock utilities and helper functions
+- `test/fixtures/` - Embedded HTML and oEmbed test fixtures
+
+**Total Test Count:** 220 tests (57 core + 156 plugin + 7 integration)
+
+**Test Coverage:** 213/213 unit and plugin tests passing (100%), 6/7 integration tests passing
 
 ### Writing Plugin Tests
 

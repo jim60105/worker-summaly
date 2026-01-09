@@ -9,8 +9,7 @@ Forked from [misskey-dev/summaly](https://github.com/misskey-dev/summaly) and co
 - 🚀 **Edge-Native**: Runs on Cloudflare's global edge network for minimal latency
 - 🔍 **Rich Metadata Extraction**: Open Graph, Twitter Cards, standard HTML metadata
 - 🎬 **oEmbed Support**: Automatic player detection for YouTube, Vimeo, and more
-- 🔌 **24 Built-in Plugins**: Specialized handlers for major platforms and services
-- 🎭 **ActivityPub Ready**: Detects ActivityPub endpoints and Fediverse creator handles
+- 🔌 **Built-in Plugins**: Specialized handlers for major platforms and services
 - ⚠️ **Content Safety**: Automatic sensitive content detection
 - 🌐 **CORS Enabled**: Ready for browser-based applications
 
@@ -55,7 +54,7 @@ The API will be available at `http://localhost:8787`
 
 ## 🔌 Built-in Plugins
 
-Worker Summaly includes 24 specialized plugins for extracting metadata from popular platforms and services:
+Worker Summaly includes **24 specialized plugins** for extracting metadata from popular platforms and services:
 
 ### Social Media & Communication
 
@@ -96,10 +95,9 @@ Worker Summaly includes 24 specialized plugins for extracting metadata from popu
 ### Other Services
 
 - **Branch.io** - Deep link resolution
-- ~~**Instagram**~~ - Currently not working
 
-> [!NOTE]
-> The Instagram plugin is currently non-functional due to platform restrictions.
+> [!WARNING]
+> The Instagram plugin is included but currently non-functional due to platform restrictions. It forces sitename to "Instagram" but cannot reliably extract metadata.
 
 ## 📖 API Documentation
 
@@ -209,48 +207,38 @@ src/
 ├── index.ts           # Core summaly() function
 ├── general.ts         # HTML parsing and metadata extraction
 ├── summary.ts         # TypeScript type definitions
-├── plugins/           # Site-specific plugins
-│   ├── amazon.ts      # Amazon product pages
-│   ├── bluesky.ts     # Bluesky social posts
+├── iplugin.ts         # Plugin interface definition
+├── plugins/           # 24 site-specific plugins
+│   ├── index.ts       # Plugin registry
+│   ├── amazon.ts      # Amazon products
+│   ├── bahamut.ts     # Bahamut forum
+│   ├── bilibili.ts    # Bilibili videos
+│   ├── bluesky.ts     # Bluesky posts
+│   ├── pixiv.ts       # Pixiv artworks
+│   ├── twitter.ts     # Twitter/X tweets
 │   ├── wikipedia.ts   # Wikipedia articles
-│   └── branchio-deeplinks.ts  # Branch.io deep links
+│   ├── youtube.ts     # YouTube videos
+│   └── ...            # 16 more plugins
 └── utils/             # Utility functions
     ├── fetch.ts       # HTTP client wrapper
     ├── encoding.ts    # Character encoding handling
+    ├── clip.ts        # Text truncation
     └── ...
 
 test/
-├── index.test.ts      # Core functionality tests
-├── worker.test.ts     # Worker integration tests
-└── fixtures/          # Test data
+├── index.test.ts      # Core functionality tests (57 tests)
+├── worker.test.ts     # Worker integration tests (7 tests)
+├── plugins/           # Plugin-specific tests (20 files, 156 tests)
+│   ├── bahamut.test.ts
+│   ├── pixiv.test.ts
+│   ├── twitter.test.ts
+│   └── ...
+├── fixtures/          # Embedded test fixtures
+│   ├── html.ts
+│   └── oembed.ts
+└── utils/
+    └── test-utils.ts  # Shared test utilities
 ```
-
-## 🔧 Configuration
-
-The project uses `wrangler.jsonc` for Cloudflare Workers configuration:
-
-```jsonc
-{
-  "name": "worker-summaly",
-  "main": "src/worker.ts",
-  "compatibility_date": "2026-01-07",
-  "compatibility_flags": ["nodejs_compat"],
-  "observability": {
-    "enabled": true,
-    "head_sampling_rate": 1
-  }
-}
-```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit issues or pull requests.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ## 📚 Documentation
 
@@ -260,10 +248,25 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 ## 📄 License
 
-This project is licensed under the AGPLv3 License - see the [LICENSE](LICENSE) file for details.
+<img src="https://github.com/user-attachments/assets/c361271f-f9e6-4372-af8d-c555432f40a7" alt="agplv3" width="300" />
+
+[GNU AFFERO GENERAL PUBLIC LICENSE Version 3](./LICENSE)
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 ## 🙏 Acknowledgments
 
 - Original project: [misskey-dev/summaly](https://github.com/misskey-dev/summaly)
-- Original author: syuilo
-- Cloudflare Workers migration and maintenance: Jim Chen
+- Plugins inspired by:
+  - [ermiana](https://github.com/canaria3406/ermiana)
+  - [mei23/summaly](https://github.com/mei23/summaly)
+  - [FxBilibili](https://github.com/cubewhy/fxbilibili)
+- Underlying proxy:
+  - [fxTikTok](https://github.com/okdargy/fxTikTok)
+  - [FixThreads](https://github.com/milanmdev/fixthreads)
+  - [FxEmbed](https://github.com/FxEmbed/FxEmbed)
+  - [vxTwitter](https://github.com/dylanpdx/BetterTwitFix)
