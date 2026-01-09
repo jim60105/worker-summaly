@@ -26,6 +26,7 @@ interface MisskeyNoteResponse {
 		url: string;
 		thumbnailUrl?: string;
 	}>;
+	renote: MisskeyNoteResponse | null;
 }
 
 export function test(url: URL): boolean {
@@ -65,10 +66,18 @@ function buildSummary(note: MisskeyNoteResponse, url: URL): Summary {
 	const domain = url.hostname;
 
 	// 取得第一張圖片作為縮圖
-	const imageFile = note.files?.find(f =>
+	let imageFile = note.files?.find(f =>
 		f.type.startsWith('image/') &&
 		['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(f.type),
 	);
+
+	if (!imageFile && note.renote && note.renote.files) {
+		// 如果主貼文沒有圖片，嘗試從轉貼的貼文中找圖片
+		imageFile = note.renote.files.find(f =>
+			f.type.startsWith('image/') &&
+			['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(f.type),
+		);
+	}
 
 	return {
 		title: note.user.name || note.user.username,
