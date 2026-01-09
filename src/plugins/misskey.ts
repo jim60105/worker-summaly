@@ -7,6 +7,14 @@ import { clip } from '@/utils/clip.js';
  */
 const MISSKEY_DOMAINS = [
 	'misskey.io',
+	'misskey.design',
+	'nijimiss.moe',
+	'labo.wovs.tk',
+	'mistyreverie.org',
+	'nya.one',
+	'pari.cafe',
+	'oekakiskey.com',
+	'xn--ior.tw',
 ];
 
 interface MisskeyNoteResponse {
