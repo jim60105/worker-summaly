@@ -1,8 +1,8 @@
 // src/env.d.ts
 export interface Env {
-	// 在此定義 Workers 綁定（bindings）
-	// 例如 KV namespaces、D1 databases、secrets 等
+	// Define Workers bindings here
+	// e.g., KV namespaces, D1 databases, secrets, etc.
 
-	// 可選：自訂 User-Agent
+	// Optional: Custom User-Agent
 	BOT_USER_AGENT?: string;
 }

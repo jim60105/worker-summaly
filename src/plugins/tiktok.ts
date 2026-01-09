@@ -5,12 +5,12 @@ import { general } from '@/general.js';
 export function test(url: URL): boolean {
 	const hostname = url.hostname;
 
-	// 標準格式
+	// Standard format
 	if (hostname === 'www.tiktok.com' || hostname === 'tiktok.com') {
 		return /^\/@[\w.-]+\/video\/\d+/.test(url.pathname);
 	}
 
-	// 短連結格式
+	// Short link format
 	if (hostname === 'vm.tiktok.com' || hostname === 'vt.tiktok.com') {
 		return /^\/[\w]{2,}/.test(url.pathname);
 	}
@@ -19,7 +19,7 @@ export function test(url: URL): boolean {
 }
 
 export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promise<Summary | null> {
-	// 建構替代服務 URL - 只替換 hostname 部分
+	// Construct alternative service URL - only replace the hostname part
 	const createProxyUrl = (proxyDomain: string): URL => {
 		const proxyUrl = new URL(url.href);
 		proxyUrl.hostname = proxyUrl.hostname.replace(/tiktok\.com$/, proxyDomain);
@@ -32,7 +32,7 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 		userAgent: opts?.userAgent || 'bot',
 	};
 
-	// 嘗試 tnktok.com
+	// Try tnktok.com
 	try {
 		const result = await general(createProxyUrl('tnktok.com'), localOpts);
 		if (result && result.title) {
@@ -40,7 +40,7 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 			return result;
 		}
 	} catch {
-		// tnktok 失敗，嘗試備用服務
+		// tnktok failed, try fallback service
 	}
 
 	return null;

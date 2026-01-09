@@ -31,7 +31,7 @@ interface MisskeyNoteResponse {
 
 export function test(url: URL): boolean {
 	if (!MISSKEY_DOMAINS.includes(url.hostname)) return false;
-	// 匹配 /notes/{note_id}
+	// Match /notes/{note_id}
 	return /^\/notes\/[a-zA-Z0-9]+$/.test(url.pathname);
 }
 
@@ -65,14 +65,14 @@ export async function summarize(url: URL): Promise<Summary | null> {
 function buildSummary(note: MisskeyNoteResponse, url: URL): Summary {
 	const domain = url.hostname;
 
-	// 取得第一張圖片作為縮圖
+	// Get the first image as thumbnail
 	let imageFile = note.files?.find(f =>
 		f.type.startsWith('image/') &&
 		['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(f.type),
 	);
 
 	if (!imageFile && note.renote && note.renote.files) {
-		// 如果主貼文沒有圖片，嘗試從轉貼的貼文中找圖片
+		// If the main post has no images, try to get images from the reposted note
 		imageFile = note.renote.files.find(f =>
 			f.type.startsWith('image/') &&
 			['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(f.type),
