@@ -15,14 +15,14 @@ Worker Summaly extracts metadata from web pages including:
 ### Key Features
 
 - **Edge-Native Architecture**: Runs on Cloudflare's global edge network for minimal latency
-- **24 Specialized Plugins**: Domain-specific handlers for major platforms
+- **26 Specialized Plugins**: Domain-specific handlers for major platforms
 - **TypeScript**: Fully typed with strict mode enabled
 - **Zero Dependencies Runtime**: Only 3 runtime dependencies (cheerio, escape-regexp, html-entities)
-- **Comprehensive Testing**: 220 tests across unit, plugin, and integration test suites
+- **Comprehensive Testing**: 237 tests across unit, plugin, and integration test suites
 - **CORS Enabled**: Ready for browser-based applications
 - **Modern ES Modules**: No CommonJS, pure ESM throughout
 
-### Built-in Plugins (27 Total)
+### Built-in Plugins
 
 **Social Media & Communication:**
 
@@ -52,6 +52,7 @@ Worker Summaly extracts metadata from web pages including:
 - **PTT** - Taiwan's largest online forum
 - **Komiflo** - Comic platform
 - **E-Hentai** - Adult content platform
+- **Booth** - Creator marketplace handled via the Booth JSON API
 
 **Art & Creative:**
 
@@ -79,6 +80,7 @@ src/
 │   ├── index.ts          # Plugin registry
 │   ├── amazon.ts         # Amazon product pages
 │   ├── bahamut.ts        # Bahamut forum posts
+|   ├── booth.ts         # Booth digital marketplace
 │   ├── ptt.ts            # PTT forum posts
 │   ├── bilibili.ts       # Bilibili videos and opus
 │   ├── bluesky.ts        # Bluesky social posts

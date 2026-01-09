@@ -20,6 +20,7 @@ test/
 │   ├── bahamut.test.ts     # Bahamut forum plugin tests
 │   ├── bilibili.test.ts    # Bilibili video plugin tests
 │   ├── bluesky.test.ts     # Bluesky social plugin tests
+│   ├── booth.test.ts       # Booth marketplace plugin tests
 │   ├── dlsite.test.ts      # DLsite product plugin tests
 │   ├── ehentai.test.ts     # E-Hentai gallery plugin tests
 │   ├── instagram.test.ts   # Instagram post plugin tests
@@ -354,6 +355,6 @@ The test suite migration from Node.js to Cloudflare Workers involved:
 6. Updating CI/CD workflows to run both test suites
 7. Separating plugin tests into individual files for better maintainability
 
-**Final test count**: 57 unit tests + 156 plugin tests + 7 integration tests = **220 tests total**
+**Final test count**: 57 unit tests + 173 plugin tests + 7 integration tests = **237 tests total**
 
-**Current pass rate**: 213/213 unit + plugin tests passing (100%), 6/7 integration tests passing
+**Current pass rate**: 230/230 unit + plugin tests passing (100%), 6/7 integration tests passing

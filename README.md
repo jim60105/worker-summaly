@@ -35,7 +35,7 @@ The API will be available at `http://localhost:8787`
 
 ## 🔌 Built-in Plugins
 
-Worker Summaly includes **24 specialized plugins** for extracting metadata from popular platforms and services:
+Worker Summaly includes **20+ specialized plugins** for extracting metadata from popular platforms and services:
 
 ### Social Media & Communication
 
@@ -64,6 +64,7 @@ Worker Summaly includes **24 specialized plugins** for extracting metadata from 
 - **PTT** - Taiwan's largest online forum
 - **Komiflo** - Comic platform
 - **E-Hentai** - Adult content platform
+- **Booth** - Creator marketplace metadata via the Booth JSON API
 
 ### Art & Creative
 
@@ -210,8 +211,9 @@ src/
 test/
 ├── index.test.ts      # Core functionality tests (57 tests)
 ├── worker.test.ts     # Worker integration tests (7 tests)
-├── plugins/           # Plugin-specific tests (20 files, 156 tests)
+├── plugins/           # Plugin-specific tests (21 files, 173 tests)
 │   ├── bahamut.test.ts
+│   ├── booth.test.ts   # Booth marketplace plugin tests
 │   ├── pixiv.test.ts
 │   ├── twitter.test.ts
 │   └── ...
@@ -247,6 +249,7 @@ You should have received a copy of the GNU Affero General Public License along w
   - [ermiana](https://github.com/canaria3406/ermiana)
   - [mei23/summaly](https://github.com/mei23/summaly)
   - [FxBilibili](https://github.com/cubewhy/fxbilibili)
+  - [Tissue](https://github.com/shikorism/tissue)
 - Underlying proxy:
   - [fxTikTok](https://github.com/okdargy/fxTikTok)
   - [FixThreads](https://github.com/milanmdev/fixthreads)

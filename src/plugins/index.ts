@@ -1,6 +1,7 @@
 import * as activitypub from './activitypub.js';
 import * as amazon from './amazon.js';
 import * as bahamut from './bahamut.js';
+import * as booth from './booth.js';
 import * as ptt from './ptt.js';
 import * as bilibili from './bilibili.js';
 import * as bluesky from './bluesky.js';
@@ -29,6 +30,7 @@ export const plugins: SummalyPlugin[] = [
 	activitypub,
 	amazon,
 	bahamut,
+	booth,
 	ptt,
 	bilibili,
 	bluesky,
