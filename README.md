@@ -1,4 +1,4 @@
-# Worker Summaly
+# Summaly for Cloudflare Workers
 
 A fast, edge-based web page summarization API powered by **Cloudflare Workers**. Extract metadata, Open Graph tags, Twitter Cards, oEmbed players, and more from any URL at lightning speed.
 
