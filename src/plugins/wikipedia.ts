@@ -42,6 +42,7 @@ export async function summarize(url: URL): Promise<summary> {
 			allow: [],
 		},
 		sitename: 'Wikipedia',
+		sensitive: false,
 		activityPub: null,
 		fediverseCreator: null,
 	};

@@ -192,6 +192,7 @@ function buildVideoSummary(video: NonNullable<BilibiliVideoApiResponse['data']>)
 			height: video.dimension?.height || 1080,
 			allow: ['autoplay', 'encrypted-media', 'fullscreen'],
 		},
+		sensitive: false,
 		activityPub: null,
 		fediverseCreator: null,
 	};
@@ -228,6 +229,7 @@ function buildDynamicSummary(item: NonNullable<BilibiliDynamicResponse['data']>[
 		thumbnail,
 		sitename: 'Bilibili',
 		player: { url: null, width: null, height: null, allow: [] },
+		sensitive: false,
 		activityPub: null,
 		fediverseCreator: null,
 	};

@@ -20,6 +20,7 @@ interface FxTwitterResponse {
 		replies?: number;
 		retweets?: number;
 		likes?: number;
+		possibly_sensitive?: boolean;
 		quote?: {
 			author: { screen_name: string };
 			url: string;
@@ -46,6 +47,7 @@ interface VxTwitterResponse {
 	replies?: number;
 	retweets?: number;
 	likes?: number;
+	possibly_sensitive?: boolean;
 	mediaURLs?: string[];
 	combinedMediaUrl?: string;
 	media_extended?: Array<{
@@ -80,7 +82,7 @@ function buildSummary(tweet: FxTwitterResponse['tweet']): summary {
 		thumbnail,
 		sitename: 'X (Twitter)',
 		player: { url: null, width: null, height: null, allow: [] },
-		sensitive: false,
+		sensitive: tweet.possibly_sensitive ?? false,
 		activityPub: null,
 		fediverseCreator: null,
 	};
@@ -102,7 +104,7 @@ function buildSummaryFromVx(data: VxTwitterResponse): summary {
 		thumbnail,
 		sitename: 'X (Twitter)',
 		player: { url: null, width: null, height: null, allow: [] },
-		sensitive: false,
+		sensitive: data.possibly_sensitive ?? false,
 		activityPub: null,
 		fediverseCreator: null,
 	};

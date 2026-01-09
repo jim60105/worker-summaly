@@ -7,7 +7,7 @@ import { clip } from '@/utils/clip.js';
 /**
  * Iwara plugin - Thumbnail and description completion
  * - Extracts video poster or first image
- * - Marks ecchi subdomain content as sensitive
+ * - Always marked as sensitive (adult content subdomain)
  *
  * Reference: https://github.com/shikorism/tissue/blob/54e112fa577315718893c803d16223f9a9a66a01/app/MetadataResolver/IwaraResolver.php
  * Inspired by mei23/summaly
@@ -49,10 +49,8 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 			}
 		}
 
-		// Mark ecchi subdomain as sensitive
-		if (url.hostname.startsWith('ecchi.')) {
-			result.sensitive = true;
-		}
+		// All Iwara content should be treated as sensitive regardless of subdomain
+		result.sensitive = true;
 
 		return result;
 	} catch {

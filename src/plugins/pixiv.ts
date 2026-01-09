@@ -20,6 +20,7 @@ interface PixivAjaxResponse {
 		userId: string;
 		bookmarkCount: number;
 		pageCount: number;
+		xRestrict?: number; // 0=SFW, 1=R-18, 2=R-18G
 		tags: {
 			tags: Array<{
 				tag: string;
@@ -68,15 +69,15 @@ export async function summarize(url: URL, _opts?: GeneralScrapingOptions): Promi
 	// Parse artwork ID from URL
 	const match = url.pathname.match(/artworks\/(\d+)/);
 	if (!match) return null;
-	
+
 	const artworkId = match[1];
-	
+
 	try {
 		const response = await get(`https://www.pixiv.net/ajax/illust/${artworkId}`);
 		const data = JSON.parse(response) as PixivAjaxResponse;
-		
+
 		if (data.error || !data.body) return null;
-		
+
 		return buildSummary(data.body, artworkId, url);
 	} catch {
 		return null;
@@ -95,16 +96,16 @@ function buildSummary(body: NonNullable<PixivAjaxResponse['body']>, artworkId: s
 		description = $.text();
 		description = clip(description, 300);
 	}
-	
+
 	// Get proxied thumbnail URL
 	const thumbnail = getProxiedThumbnail(body, artworkId);
-	
+
 	// Extract first 5 tags
 	const tags = body.tags.tags
 		.slice(0, 5)
 		.map(t => t.tag)
 		.join(', ');
-	
+
 	// Combine description with metadata
 	const fullDescription = [
 		description,
@@ -113,12 +114,16 @@ function buildSummary(body: NonNullable<PixivAjaxResponse['body']>, artworkId: s
 		tags ? `標籤: ${tags}` : null,
 	].filter(Boolean).join('\n');
 
+	// xRestrict: 0=SFW, 1=R-18, 2=R-18G
+	const sensitive = (body.xRestrict ?? 0) > 0;
+
 	return {
 		title: body.title,
 		icon: 'https://www.pixiv.net/favicon.ico',
 		description: clip(fullDescription, 300),
 		thumbnail,
 		sitename: 'Pixiv',
+		sensitive,
 		player: { url: null, width: null, height: null, allow: [] },
 		activityPub: null,
 		fediverseCreator: null,
@@ -131,7 +136,7 @@ function buildSummary(body: NonNullable<PixivAjaxResponse['body']>, artworkId: s
 function getProxiedThumbnail(body: NonNullable<PixivAjaxResponse['body']>, artworkId: string): string | null {
 	// Prefer regular size
 	let imageUrl = body.urls?.regular;
-	
+
 	if (!imageUrl) {
 		// Fallback: try to get from userIllusts
 		const illustData = body.userIllusts?.[artworkId];
@@ -143,9 +148,9 @@ function getProxiedThumbnail(body: NonNullable<PixivAjaxResponse['body']>, artwo
 			}
 		}
 	}
-	
+
 	if (!imageUrl) return null;
-	
+
 	// Replace i.pximg.net with proxy service
 	return imageUrl.replace('i.pximg.net', PROXY_SERVICE);
 }

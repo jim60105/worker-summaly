@@ -93,6 +93,7 @@ function buildSummary($: cheerio.CheerioAPI): Summary {
 		thumbnail,
 		sitename: 'Plurk',
 		player: { url: null, width: null, height: null, allow: [] },
+		sensitive: false,
 		activityPub: null,
 		fediverseCreator: plurkNickName ? `@${plurkNickName}` : null,
 	};

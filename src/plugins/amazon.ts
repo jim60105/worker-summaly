@@ -54,6 +54,7 @@ export async function summarize(url: URL): Promise<summary> {
 			allow: playerUrl ? ['fullscreen', 'encrypted-media'] : [],
 		},
 		sitename: 'Amazon',
+		sensitive: false,
 		activityPub: null,
 		fediverseCreator: null,
 	};

@@ -28,7 +28,7 @@ describe('Iwara Plugin', () => {
 		expect(testUrl(new URL('https://iwara.tv/video/123'))).toBe(false);
 	});
 
-	test('www.iwara.tv is not marked sensitive by default', async () => {
+	test('www.iwara.tv is always marked sensitive', async () => {
 		const { summarize } = await import('@/plugins/iwara.js');
 		const html = `<!DOCTYPE html>
 <html>
@@ -46,7 +46,7 @@ describe('Iwara Plugin', () => {
 		const summary = await summarize(new URL('https://www.iwara.tv/video/abc123'));
 
 		expect(summary).not.toBeNull();
-		expect(summary?.sensitive).toBe(false);
+		expect(summary?.sensitive).toBe(true);
 	});
 
 	test('ecchi.iwara.tv is marked sensitive', async () => {

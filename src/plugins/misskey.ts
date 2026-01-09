@@ -17,6 +17,7 @@ interface MisskeyNoteResponse {
 		avatarUrl: string | null;
 	};
 	text: string | null;
+	cw: string | null; // Content Warning text
 	repliesCount: number;
 	renoteCount: number;
 	reactions: Record<string, number>;
@@ -75,6 +76,7 @@ function buildSummary(note: MisskeyNoteResponse, url: URL): Summary {
 		description: note.text ? clip(note.text, 300) : null,
 		thumbnail: imageFile?.url || null,
 		sitename: domain,
+		sensitive: !!note.cw,
 		player: { url: null, width: null, height: null, allow: [] },
 		activityPub: url.href,
 		fediverseCreator: `@${note.user.username}@${domain}`,

@@ -155,6 +155,7 @@ function buildSummary(
 		thumbnail: basic.imageUrl || null,
 		sitename: 'PChome 24h',
 		player: { url: null, width: null, height: null, allow: [] },
+		sensitive: false,
 		activityPub: null,
 		fediverseCreator: null,
 	};

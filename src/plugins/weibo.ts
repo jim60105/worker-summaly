@@ -128,6 +128,7 @@ function buildSummary(status: WeiboStatusResponse['data']): Summary {
 		thumbnail,
 		sitename: 'Weibo',
 		player: { url: null, width: null, height: null, allow: [] },
+		sensitive: false,
 		activityPub: null,
 		fediverseCreator: null,
 	};
