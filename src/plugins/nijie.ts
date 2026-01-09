@@ -44,7 +44,13 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 		// All Nijie content is sensitive
 		result.sensitive = true;
 		return result;
-	} catch {
+	} catch (error) {
+		console.error({
+			event: 'plugin_error',
+			plugin: 'nijie',
+			url: url.href,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }
@@ -84,7 +90,13 @@ async function extractThumbnailFromLdJson(
 		if (imageObject?.thumbnailUrl) {
 			summary.thumbnail = imageObject.thumbnailUrl;
 		}
-	} catch {
+	} catch (error) {
+		console.debug({
+			event: 'plugin_ldjson_extraction_failed',
+			plugin: 'nijie',
+			url: url.href,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		// Extraction failed, keep original summary
 	}
 

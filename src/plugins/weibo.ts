@@ -70,14 +70,36 @@ export async function summarize(url: URL): Promise<Summary | null> {
 			},
 		);
 
-		if (!response.ok) return null;
+		if (!response.ok) {
+			console.warn({
+				event: 'plugin_api_error',
+				plugin: 'weibo',
+				statusId,
+				status: response.status,
+			});
+			return null;
+		}
 
 		const data = await response.json() as WeiboStatusResponse;
 
-		if (data.ok !== 1) return null;
+		if (data.ok !== 1) {
+			console.warn({
+				event: 'plugin_api_error',
+				plugin: 'weibo',
+				statusId,
+				apiOk: data.ok,
+			});
+			return null;
+		}
 
 		return buildSummary(data.data);
-	} catch {
+	} catch (error) {
+		console.error({
+			event: 'plugin_error',
+			plugin: 'weibo',
+			statusId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }

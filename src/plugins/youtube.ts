@@ -85,7 +85,13 @@ export async function summarize(url: URL): Promise<Summary | null> {
 			activityPub: null,
 			fediverseCreator: null,
 		};
-	} catch {
+	} catch (error) {
+		console.error({
+			event: 'plugin_error',
+			plugin: 'youtube',
+			url: url.href,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }

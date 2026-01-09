@@ -18,44 +18,54 @@ export function test(url: URL): boolean {
 	url.hostname === 'www.amazon.au';
 }
 
-export async function summarize(url: URL): Promise<summary> {
-	const res = await scraping(url.href);
-	const $ = res.$;
+export async function summarize(url: URL): Promise<summary | null> {
+	try {
+		const res = await scraping(url.href);
+		const $ = res.$;
 
-	const title = $('#title').text();
+		const title = $('#title').text();
 
-	const description =
-		$('#productDescription').text() ||
-		$('meta[name="description"]').attr('content');
+		const description =
+			$('#productDescription').text() ||
+			$('meta[name="description"]').attr('content');
 
-	const thumbnail: string | undefined = $('#landingImage').attr('src');
+		const thumbnail: string | undefined = $('#landingImage').attr('src');
 
-	const playerUrl =
-		$('meta[property="twitter:player"]').attr('content') ||
-		$('meta[name="twitter:player"]').attr('content');
+		const playerUrl =
+			$('meta[property="twitter:player"]').attr('content') ||
+			$('meta[name="twitter:player"]').attr('content');
 
-	const playerWidth =
-		$('meta[property="twitter:player:width"]').attr('content') ||
-		$('meta[name="twitter:player:width"]').attr('content');
+		const playerWidth =
+			$('meta[property="twitter:player:width"]').attr('content') ||
+			$('meta[name="twitter:player:width"]').attr('content');
 
-	const playerHeight =
-		$('meta[property="twitter:player:height"]').attr('content') ||
-		$('meta[name="twitter:player:height"]').attr('content');
+		const playerHeight =
+			$('meta[property="twitter:player:height"]').attr('content') ||
+			$('meta[name="twitter:player:height"]').attr('content');
 
-	return {
-		title: title ? title.trim() : null,
-		icon: 'https://www.amazon.com/favicon.ico',
-		description: description ? description.trim() : null,
-		thumbnail: thumbnail ? thumbnail.trim() : null,
-		player: {
-			url: playerUrl || null,
-			width: playerWidth ? parseInt(playerWidth) : null,
-			height: playerHeight ? parseInt(playerHeight) : null,
-			allow: playerUrl ? ['fullscreen', 'encrypted-media'] : [],
-		},
-		sitename: 'Amazon',
-		sensitive: false,
-		activityPub: null,
-		fediverseCreator: null,
-	};
+		return {
+			title: title ? title.trim() : null,
+			icon: 'https://www.amazon.com/favicon.ico',
+			description: description ? description.trim() : null,
+			thumbnail: thumbnail ? thumbnail.trim() : null,
+			player: {
+				url: playerUrl || null,
+				width: playerWidth ? parseInt(playerWidth) : null,
+				height: playerHeight ? parseInt(playerHeight) : null,
+				allow: playerUrl ? ['fullscreen', 'encrypted-media'] : [],
+			},
+			sitename: 'Amazon',
+			sensitive: false,
+			activityPub: null,
+			fediverseCreator: null,
+		};
+	} catch (error) {
+		console.error({
+			event: 'plugin_error',
+			plugin: 'amazon',
+			url: url.href,
+			error: error instanceof Error ? error.message : String(error),
+		});
+		return null;
+	}
 }

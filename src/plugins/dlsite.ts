@@ -28,15 +28,34 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 	} catch (e) {
 		// Handle 404 by trying URL correction
 		if (e instanceof StatusError && e.statusCode === 404) {
+			console.info({
+				event: 'plugin_url_correction_attempt',
+				plugin: 'dlsite',
+				url: url.href,
+				reason: '404_not_found',
+			});
 			const correctedUrl = correctUrl(url);
 			if (correctedUrl) {
 				try {
 					const result = await general(correctedUrl, opts);
 					return addSensitiveFlag(correctedUrl, result);
-				} catch {
-					// Corrected URL also failed
+				} catch (correctedError) {
+					console.warn({
+						event: 'plugin_url_correction_failed',
+						plugin: 'dlsite',
+						originalUrl: url.href,
+						correctedUrl: correctedUrl.href,
+						error: correctedError instanceof Error ? correctedError.message : String(correctedError),
+					});
 				}
 			}
+		} else {
+			console.error({
+				event: 'plugin_error',
+				plugin: 'dlsite',
+				url: url.href,
+				error: e instanceof Error ? e.message : String(e),
+			});
 		}
 		return null;
 	}

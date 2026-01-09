@@ -23,10 +23,24 @@ export async function summarize(url: URL): Promise<Summary | null> {
 			fetchDescription(productId),
 		]);
 
-		if (!basicData) return null;
+		if (!basicData) {
+			console.warn({
+				event: 'plugin_api_error',
+				plugin: 'pchome',
+				productId,
+				reason: 'basic_info_fetch_failed',
+			});
+			return null;
+		}
 
 		return buildSummary(basicData, descData);
-	} catch {
+	} catch (error) {
+		console.error({
+			event: 'plugin_error',
+			plugin: 'pchome',
+			productId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }
@@ -115,7 +129,14 @@ async function fetchDescription(productId: string): Promise<PchomeDescription> {
 		}
 
 		return { brand, slogan };
-	} catch {
+	} catch (error) {
+		console.debug({
+			event: 'plugin_api_warning',
+			plugin: 'pchome',
+			productId,
+			api: 'description',
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return { brand: null, slogan: null };
 	}
 }

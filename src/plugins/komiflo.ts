@@ -64,7 +64,13 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 		// All Komiflo content is sensitive
 		result.sensitive = true;
 		return result;
-	} catch {
+	} catch (error) {
+		console.error({
+			event: 'plugin_error',
+			plugin: 'komiflo',
+			url: url.href,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }
@@ -89,8 +95,13 @@ async function fetchThumbnailFromApi(comicId: string): Promise<string | null> {
 		) {
 			return `https://t.komiflo.com/346_mobile/${namedImgs.cover.filename}`;
 		}
-	} catch {
-		// API request failed
+	} catch (error) {
+		console.warn({
+			event: 'plugin_api_error',
+			plugin: 'komiflo',
+			comicId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 	}
 
 	return null;

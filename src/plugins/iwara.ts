@@ -53,7 +53,13 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 		result.sensitive = true;
 
 		return result;
-	} catch {
+	} catch (error) {
+		console.error({
+			event: 'plugin_error',
+			plugin: 'iwara',
+			url: url.href,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }

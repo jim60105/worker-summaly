@@ -64,6 +64,20 @@ export const summalyDefaultOptions = {
 } as SummalyOptions;
 
 /**
+ * Get plugin name for logging purposes
+ */
+function getPluginName(plugin: SummalyPlugin): string {
+	// Try to extract module name from the plugin's test function
+	const testStr = plugin.test.toString();
+	const hostnameMatch = testStr.match(/hostname\s*===?\s*['"]([^'"]+)['"]/);
+	if (hostnameMatch) {
+		return hostnameMatch[1];
+	}
+	// Fallback to a generic identifier
+	return 'unknown-plugin';
+}
+
+/**
  * Summarize an web page
  */
 export const summaly = async (url: string, options?: SummalyOptions): Promise<SummalyResult> => {
@@ -76,7 +90,19 @@ export const summaly = async (url: string, options?: SummalyOptions): Promise<Su
 		try {
 			const response = await head(url);
 			actualUrl = response.url;
-		} catch {
+			if (actualUrl !== url) {
+				console.debug({
+					event: 'url_redirect',
+					originalUrl: url,
+					resolvedUrl: actualUrl,
+				});
+			}
+		} catch (error) {
+			console.warn({
+				event: 'redirect_check_failed',
+				url,
+				error: error instanceof Error ? error.message : String(error),
+			});
 			actualUrl = url;
 		}
 	}
@@ -97,12 +123,79 @@ export const summaly = async (url: string, options?: SummalyOptions): Promise<Su
 		contentLengthRequired: opts.contentLengthRequired,
 	};
 
-	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-	const summary = await (match ? match.summarize : general)(_url, scrapingOptions);
+	let summary = null;
+	const pluginName = match ? getPluginName(match) : null;
+
+	if (match) {
+		console.debug({
+			event: 'plugin_matched',
+			url: actualUrl,
+			plugin: pluginName,
+		});
+
+		try {
+			summary = await match.summarize(_url, scrapingOptions);
+
+			if (summary == null) {
+				// Plugin returned null, fallback to general
+				console.info({
+					event: 'plugin_returned_null',
+					url: actualUrl,
+					plugin: pluginName,
+					action: 'falling_back_to_general',
+				});
+				summary = await general(_url, scrapingOptions);
+			}
+		} catch (error) {
+			// Plugin threw an error, log it and fallback to general
+			console.error({
+				event: 'plugin_error',
+				url: actualUrl,
+				plugin: pluginName,
+				error: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : undefined,
+				action: 'falling_back_to_general',
+			});
+
+			try {
+				summary = await general(_url, scrapingOptions);
+			} catch (generalError) {
+				console.error({
+					event: 'general_fallback_error',
+					url: actualUrl,
+					plugin: pluginName,
+					error: generalError instanceof Error ? generalError.message : String(generalError),
+				});
+				throw generalError;
+			}
+		}
+	} else {
+		console.debug({
+			event: 'no_plugin_matched',
+			url: actualUrl,
+			action: 'using_general',
+		});
+		summary = await general(_url, scrapingOptions);
+	}
 
 	if (summary == null) {
+		console.error({
+			event: 'summarization_failed',
+			url: actualUrl,
+			plugin: pluginName,
+		});
 		throw new Error('failed summarize');
 	}
+
+	console.debug({
+		event: 'summarization_complete',
+		url: actualUrl,
+		plugin: pluginName || 'general',
+		hasTitle: !!summary.title,
+		hasDescription: !!summary.description,
+		hasThumbnail: !!summary.thumbnail,
+		sensitive: summary.sensitive,
+	});
 
 	return Object.assign(summary, {
 		url: actualUrl,

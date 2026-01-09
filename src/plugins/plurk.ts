@@ -31,7 +31,13 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 		const $ = res.$;
 
 		return buildSummary($);
-	} catch {
+	} catch (error) {
+		console.error({
+			event: 'plugin_error',
+			plugin: 'plurk',
+			plurkId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }

@@ -54,6 +54,8 @@ export default {
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		_ctx: ExecutionContext,
 	): Promise<Response> {
+		const requestUrl = new URL(request.url);
+
 		// Handle CORS preflight
 		if (request.method === 'OPTIONS') {
 			return handleOptions();
@@ -61,26 +63,35 @@ export default {
 
 		// Only accept GET requests
 		if (request.method !== 'GET') {
+			console.warn({
+				event: 'request_rejected',
+				reason: 'method_not_allowed',
+				method: request.method,
+				path: requestUrl.pathname,
+			});
 			return jsonResponse(
 				{ error: 'Method not allowed' },
 				405,
 			);
 		}
 
-		const url = new URL(request.url);
-
 		// Health check endpoint
-		if (url.pathname === '/health') {
+		if (requestUrl.pathname === '/health') {
 			return jsonResponse({ status: 'ok' });
 		}
 
 		// Main summarization endpoint
-		if (url.pathname === '/' || url.pathname === '/api/summarize') {
-			const targetUrl = url.searchParams.get('url');
-			const lang = url.searchParams.get('lang') || undefined;
+		if (requestUrl.pathname === '/' || requestUrl.pathname === '/api/summarize') {
+			const targetUrl = requestUrl.searchParams.get('url');
+			const lang = requestUrl.searchParams.get('lang') || undefined;
 
 			// Validate required parameter
 			if (!targetUrl) {
+				console.warn({
+					event: 'request_rejected',
+					reason: 'missing_url_parameter',
+					path: requestUrl.pathname,
+				});
 				return jsonResponse(
 					{ error: 'Missing required parameter: url' },
 					400,
@@ -91,11 +102,22 @@ export default {
 			try {
 				new URL(targetUrl);
 			} catch {
+				console.warn({
+					event: 'request_rejected',
+					reason: 'invalid_url_format',
+					targetUrl,
+				});
 				return jsonResponse(
 					{ error: 'Invalid URL format' },
 					400,
 				);
 			}
+
+			console.info({
+				event: 'summarization_request',
+				targetUrl,
+				lang: lang || 'default',
+			});
 
 			try {
 				const result: SummalyResult = await summaly(targetUrl, {
@@ -103,13 +125,28 @@ export default {
 					// Additional options can be configured here
 				});
 
+				console.info({
+					event: 'summarization_success',
+					targetUrl,
+					hasTitle: !!result.title,
+					hasDescription: !!result.description,
+					hasThumbnail: !!result.thumbnail,
+					hasPlayer: !!result.player.url,
+					sensitive: result.sensitive,
+				});
+
 				return jsonResponse(result);
 			} catch (error) {
-				console.error('Summarization error:', error);
-
 				const message = error instanceof Error
 					? error.message
 					: 'Unknown error occurred';
+
+				console.error({
+					event: 'summarization_error',
+					targetUrl,
+					error: message,
+					stack: error instanceof Error ? error.stack : undefined,
+				});
 
 				return jsonResponse(
 					{ error: message },
@@ -119,6 +156,11 @@ export default {
 		}
 
 		// Return 404 for unknown paths
+		console.warn({
+			event: 'request_rejected',
+			reason: 'not_found',
+			path: requestUrl.pathname,
+		});
 		return jsonResponse(
 			{ error: 'Not found' },
 			404,

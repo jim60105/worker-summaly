@@ -21,13 +21,35 @@ async function getOEmbedPlayer($: cheerio.CheerioAPI, pageUrl: string): Promise<
 	const oEmbedUrl = (() => {
 		try {
 			return new URL(href, pageUrl);
-		} catch { return null; }
+		} catch (error) {
+			console.warn({
+				event: 'oembed_url_parse_error',
+				pageUrl,
+				href,
+				error: error instanceof Error ? error.message : String(error),
+			});
+			return null;
+		}
 	})();
 	if (!oEmbedUrl) {
 		return null;
 	}
 
-	const oEmbed = await get(oEmbedUrl.href).catch(() => null);
+	console.debug({
+		event: 'oembed_fetch_start',
+		pageUrl,
+		oEmbedUrl: oEmbedUrl.href,
+	});
+
+	const oEmbed = await get(oEmbedUrl.href).catch((error) => {
+		console.warn({
+			event: 'oembed_fetch_error',
+			pageUrl,
+			oEmbedUrl: oEmbedUrl.href,
+			error: error instanceof Error ? error.message : String(error),
+		});
+		return null;
+	});
 	if (!oEmbed) {
 		return null;
 	}
@@ -35,16 +57,36 @@ async function getOEmbedPlayer($: cheerio.CheerioAPI, pageUrl: string): Promise<
 	const body = (() => {
 		try {
 			return JSON.parse(oEmbed);
-		} catch { /* empty */ }
+		} catch (error) {
+			console.warn({
+				event: 'oembed_parse_error',
+				pageUrl,
+				oEmbedUrl: oEmbedUrl.href,
+				error: error instanceof Error ? error.message : String(error),
+			});
+			return null;
+		}
 	})();
 
 	if (!body || body.version !== '1.0' || !['rich', 'video'].includes(body.type)) {
 		// Not a well formed rich oEmbed
+		if (body) {
+			console.debug({
+				event: 'oembed_invalid_format',
+				pageUrl,
+				version: body.version,
+				type: body.type,
+			});
+		}
 		return null;
 	}
 
 	if (!body.html.startsWith('<iframe ') || !body.html.endsWith('</iframe>')) {
 		// It includes something else than an iframe
+		console.debug({
+			event: 'oembed_non_iframe_content',
+			pageUrl,
+		});
 		return null;
 	}
 
@@ -70,9 +112,20 @@ async function getOEmbedPlayer($: cheerio.CheerioAPI, pageUrl: string): Promise<
 	try {
 		if ((new URL(url)).protocol !== 'https:') {
 			// Allow only HTTPS for best security
+			console.debug({
+				event: 'oembed_non_https_rejected',
+				pageUrl,
+				iframeSrc: url,
+			});
 			return null;
 		}
-	} catch {
+	} catch (error) {
+		console.warn({
+			event: 'oembed_iframe_url_parse_error',
+			pageUrl,
+			url,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 
@@ -145,6 +198,12 @@ export async function general(_url: URL | string, opts?: GeneralScrapingOptions)
 
 	const url = typeof _url === 'string' ? new URL(_url) : _url;
 
+	console.debug({
+		event: 'general_scraping_start',
+		url: url.href,
+		lang: lang || 'default',
+	});
+
 	const res = await scraping(url.href, {
 		lang: lang || undefined,
 		userAgent: opts?.userAgent,
@@ -187,6 +246,10 @@ export async function parseGeneral(_url: URL | string, res: Awaited<ReturnType<t
 
 	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 	if (title === undefined || title === null) {
+		console.warn({
+			event: 'general_parsing_no_title',
+			url: url.href,
+		});
 		return null;
 	}
 
@@ -265,7 +328,13 @@ export async function parseGeneral(_url: URL | string, res: Awaited<ReturnType<t
 		try {
 			await head(target.href);
 			return target;
-		} catch {
+		} catch (error) {
+			console.debug({
+				event: 'favicon_check_failed',
+				url: url.href,
+				faviconPath: path,
+				error: error instanceof Error ? error.message : String(error),
+			});
 			return null;
 		}
 	};

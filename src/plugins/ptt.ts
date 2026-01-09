@@ -20,14 +20,28 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 			},
 			signal: AbortSignal.timeout(opts?.responseTimeout || 3000),
 		});
-		
-		if (!response.ok) return null;
-		
+
+		if (!response.ok) {
+			console.warn({
+				event: 'plugin_api_error',
+				plugin: 'ptt',
+				url: url.href,
+				status: response.status,
+			});
+			return null;
+		}
+
 		const html = await response.text();
 		const $ = cheerio.load(html);
-		
+
 		return buildSummary($);
-	} catch {
+	} catch (error) {
+		console.error({
+			event: 'plugin_error',
+			plugin: 'ptt',
+			url: url.href,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }
@@ -36,11 +50,11 @@ function buildSummary($: cheerio.CheerioAPI): Summary {
 	// Extract basic information from Open Graph
 	const ogTitle = $('meta[property="og:title"]').attr('content');
 	const ogDescription = $('meta[property="og:description"]').attr('content');
-	
+
 	// Extract images from main content area
 	const mainContent = $('#main-content').text().substring(0, 1000);
 	const thumbnail = extractFirstImage(mainContent);
-	
+
 	// Handle special format for news articles
 	let description = ogDescription;
 	if (description && description.includes('1.媒體來源:')) {
@@ -50,7 +64,7 @@ function buildSummary($: cheerio.CheerioAPI): Summary {
 			description = newsContent;
 		}
 	}
-	
+
 	return {
 		title: ogTitle || 'PTT 文章',
 		icon: 'https://www.ptt.cc/favicon.ico',
@@ -75,7 +89,7 @@ function extractNewsContent(text: string): string | null {
 	// Format: 4.完整新聞內文: ... 5.完整新聞連結
 	const matches = text.match(/4\.完整新聞內文:[\s\S]+?5\.完整新聞連結/);
 	if (!matches) return null;
-	
+
 	const content = matches[0]
 		.replace('4.完整新聞內文:', '')
 		.replace(/5\.完整新聞連結.*$/s, '')
@@ -84,6 +98,6 @@ function extractNewsContent(text: string): string | null {
 		.join('\n')
 		.replace(/^\s*\n/gm, '')
 		.trim();
-	
+
 	return content.substring(0, 300);
 }

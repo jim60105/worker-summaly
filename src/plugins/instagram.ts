@@ -29,7 +29,12 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 		}
 		return result;
 	} catch (error) {
-		console.error('Instagram plugin error:', error);
+		console.error({
+			event: 'plugin_error',
+			plugin: 'instagram',
+			url: url.href,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }

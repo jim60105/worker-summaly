@@ -48,7 +48,12 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 
 		return buildSummary($);
 	} catch (error) {
-		console.error('Bahamut plugin error:', error);
+		console.error({
+			event: 'plugin_error',
+			plugin: 'bahamut',
+			url: url.href,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }

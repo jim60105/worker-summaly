@@ -24,8 +24,16 @@ export async function summarize(url: URL): Promise<Summary | null> {
 		if (bskxData) {
 			return buildSummary(bskxData, handle);
 		}
-	} catch {
-		// bskx failed, try fallback
+	} catch (error) {
+		console.warn({
+			event: 'plugin_api_error',
+			plugin: 'bluesky',
+			api: 'bskx',
+			handle,
+			postId,
+			error: error instanceof Error ? error.message : String(error),
+			action: 'trying_official_api_fallback',
+		});
 	}
 
 	// 3. Fallback: Use official Bluesky API
@@ -34,8 +42,14 @@ export async function summarize(url: URL): Promise<Summary | null> {
 		if (officialData) {
 			return buildSummary(officialData, handle);
 		}
-	} catch {
-		// Both APIs failed, return null
+	} catch (error) {
+		console.error({
+			event: 'plugin_all_apis_failed',
+			plugin: 'bluesky',
+			handle,
+			postId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 	}
 
 	return null;

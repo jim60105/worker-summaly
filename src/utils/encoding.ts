@@ -33,18 +33,31 @@ export function detectEncoding(body: Uint8Array): string {
 	// Check first 4KB for meta charset tag (performance optimization)
 	const sampleSize = Math.min(body.length, 4096);
 	const sample = body.slice(0, sampleSize);
-	
+
 	// Use ASCII decoding to find charset in HTML meta tags
 	// This is reliable since charset declarations are always ASCII-compatible
 	const asciiText = asciiDecoder.decode(sample);
-	
+
 	const matchMeta = asciiText.match(regCharset);
 	if (matchMeta) {
 		const candidate = matchMeta[1];
 		const encoding = toEncoding(candidate);
-		if (encoding != null) return encoding;
+		if (encoding != null) {
+			console.debug({
+				event: 'encoding_detected',
+				detectedCharset: candidate,
+				normalizedEncoding: encoding,
+			});
+			return encoding;
+		} else {
+			console.warn({
+				event: 'encoding_unsupported',
+				detectedCharset: candidate,
+				fallback: 'utf-8',
+			});
+		}
 	}
-	
+
 	// Default to UTF-8
 	return 'utf-8';
 }
@@ -57,12 +70,19 @@ export function detectEncoding(body: Uint8Array): string {
  */
 export function toUtf8(body: Uint8Array, encoding: string): string {
 	const normalizedEncoding = normalizeEncoding(encoding);
-	
+
 	try {
 		const decoder = getDecoder(normalizedEncoding);
 		return decoder.decode(body);
-	} catch {
+	} catch (error) {
 		// Fallback to UTF-8 if encoding is not supported
+		console.warn({
+			event: 'encoding_decode_fallback',
+			originalEncoding: encoding,
+			normalizedEncoding,
+			error: error instanceof Error ? error.message : String(error),
+			fallback: 'utf-8',
+		});
 		const decoder = getDecoder('utf-8');
 		return decoder.decode(body);
 	}
@@ -75,19 +95,19 @@ export function toUtf8(body: Uint8Array, encoding: string): string {
  */
 function normalizeEncoding(encoding: string): string {
 	const lower = encoding.toLowerCase();
-	
+
 	// Handle Japanese encoding aliases
 	// TextDecoder supports 'shift-jis' but not 'cp932', 'windows-31j', etc.
 	if (JAPANESE_ENCODING_ALIASES.includes(lower)) {
 		return 'shift-jis';
 	}
-	
+
 	// Handle Chinese encoding aliases
 	// 'gb2312' is an alias for 'gbk' in TextDecoder
 	if (CHINESE_ENCODING_ALIASES.includes(lower)) {
 		return 'gbk';
 	}
-	
+
 	// Return as-is for other encodings
 	return encoding;
 }
@@ -99,12 +119,18 @@ function normalizeEncoding(encoding: string): string {
  */
 function toEncoding(candidate: string): string | null {
 	const normalized = normalizeEncoding(candidate);
-	
+
 	try {
 		// Validate by attempting to get decoder (uses cache if available)
 		getDecoder(normalized);
 		return normalized;
-	} catch {
+	} catch (error) {
+		console.debug({
+			event: 'encoding_validation_failed',
+			candidate,
+			normalized,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }

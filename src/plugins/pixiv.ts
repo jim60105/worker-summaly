@@ -76,10 +76,25 @@ export async function summarize(url: URL, _opts?: GeneralScrapingOptions): Promi
 		const response = await get(`https://www.pixiv.net/ajax/illust/${artworkId}`);
 		const data = JSON.parse(response) as PixivAjaxResponse;
 
-		if (data.error || !data.body) return null;
+		if (data.error || !data.body) {
+			console.warn({
+				event: 'plugin_api_error',
+				plugin: 'pixiv',
+				artworkId,
+				apiError: data.error,
+				message: data.message,
+			});
+			return null;
+		}
 
 		return buildSummary(data.body, artworkId, url);
-	} catch {
+	} catch (error) {
+		console.error({
+			event: 'plugin_error',
+			plugin: 'pixiv',
+			artworkId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }

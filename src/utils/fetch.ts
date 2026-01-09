@@ -44,6 +44,13 @@ export async function getResponse(args: FetchOptions): Promise<Response> {
 			}
 		}
 
+		console.debug({
+			event: 'http_request_start',
+			url: args.url,
+			method: args.method,
+			timeoutMs: timeout,
+		});
+
 		const response = await fetch(args.url, {
 			method: args.method,
 			headers,
@@ -56,6 +63,13 @@ export async function getResponse(args: FetchOptions): Promise<Response> {
 
 		// Check HTTP status code
 		if (!response.ok) {
+			console.warn({
+				event: 'http_response_error',
+				url: args.url,
+				method: args.method,
+				status: response.status,
+				statusText: response.statusText,
+			});
 			throw new StatusError(
 				`${response.status} ${response.statusText}`,
 				response.status,
@@ -66,6 +80,13 @@ export async function getResponse(args: FetchOptions): Promise<Response> {
 		// Check content-type
 		const contentType = response.headers.get('content-type');
 		if (args.typeFilter && contentType && !contentType.match(args.typeFilter)) {
+			console.warn({
+				event: 'http_response_type_rejected',
+				url: args.url,
+				method: args.method,
+				contentType,
+				expectedPattern: args.typeFilter.toString(),
+			});
 			throw new Error(`Rejected by type filter ${contentType}`);
 		}
 
@@ -75,18 +96,57 @@ export async function getResponse(args: FetchOptions): Promise<Response> {
 			const maxSize = args.contentLengthLimit ?? DEFAULT_MAX_RESPONSE_SIZE;
 			const size = Number(contentLength);
 			if (size > maxSize) {
+				console.warn({
+					event: 'http_response_size_exceeded',
+					url: args.url,
+					method: args.method,
+					contentLength: size,
+					maxSize,
+				});
 				throw new Error(`maxSize exceeded (${size} > ${maxSize}) on response`);
 			}
 		} else if (args.contentLengthRequired) {
+			console.warn({
+				event: 'http_response_missing_content_length',
+				url: args.url,
+				method: args.method,
+			});
 			throw new Error('content-length required');
 		}
+
+		console.debug({
+			event: 'http_response_success',
+			url: args.url,
+			method: args.method,
+			status: response.status,
+			contentType,
+			contentLength: contentLength ? Number(contentLength) : null,
+		});
 
 		return response;
 	} catch (error) {
 		clearTimeout(timeoutId);
+
 		if (error instanceof Error && error.name === 'AbortError') {
+			console.error({
+				event: 'http_request_timeout',
+				url: args.url,
+				method: args.method,
+				timeoutMs: timeout,
+			});
 			throw new Error(`Request timeout after ${timeout}ms`);
 		}
+
+		// Don't double-log errors we already logged
+		if (!(error instanceof StatusError)) {
+			console.error({
+				event: 'http_request_error',
+				url: args.url,
+				method: args.method,
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+
 		throw error;
 	}
 }
@@ -117,12 +177,25 @@ export async function scraping(url: string, opts?: GeneralScrapingOptions) {
 	// Check actual received size
 	const maxSize = opts?.contentLengthLimit ?? DEFAULT_MAX_RESPONSE_SIZE;
 	if (rawBody.length > maxSize) {
+		console.error({
+			event: 'scraping_body_size_exceeded',
+			url,
+			bodySize: rawBody.length,
+			maxSize,
+		});
 		throw new Error(`maxSize exceeded (${rawBody.length} > ${maxSize}) on response`);
 	}
 
 	const encoding = detectEncoding(rawBody);
 	const body = toUtf8(rawBody, encoding);
 	const $ = cheerio.load(body);
+
+	console.debug({
+		event: 'scraping_complete',
+		url,
+		encoding,
+		bodyLength: body.length,
+	});
 
 	return {
 		body,

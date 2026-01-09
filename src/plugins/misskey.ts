@@ -52,12 +52,28 @@ export async function summarize(url: URL): Promise<Summary | null> {
 			signal: AbortSignal.timeout(2000),
 		});
 
-		if (!response.ok) return null;
+		if (!response.ok) {
+			console.warn({
+				event: 'plugin_api_error',
+				plugin: 'misskey',
+				domain,
+				noteId,
+				status: response.status,
+			});
+			return null;
+		}
 
 		const data = await response.json() as MisskeyNoteResponse;
 
 		return buildSummary(data, url);
-	} catch {
+	} catch (error) {
+		console.error({
+			event: 'plugin_error',
+			plugin: 'misskey',
+			domain,
+			noteId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }

@@ -39,8 +39,14 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 			result.sitename = 'TikTok';
 			return result;
 		}
-	} catch {
-		// tnktok failed, try fallback service
+	} catch (error) {
+		console.error({
+			event: 'plugin_error',
+			plugin: 'tiktok',
+			url: url.href,
+			proxy: 'tnktok.com',
+			error: error instanceof Error ? error.message : String(error),
+		});
 	}
 
 	return null;

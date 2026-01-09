@@ -12,5 +12,15 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 	// Force redirect to web version to prevent branch.io's custom page from opening
 	url.searchParams.append('$web_only', 'true');
 
-	return await general(url, opts);
+	try {
+		return await general(url, opts);
+	} catch (error) {
+		console.error({
+			event: 'plugin_error',
+			plugin: 'branchio-deeplinks',
+			url: url.href,
+			error: error instanceof Error ? error.message : String(error),
+		});
+		return null;
+	}
 }

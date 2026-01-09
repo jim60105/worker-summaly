@@ -23,8 +23,13 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
 			result.sitename = 'Threads';
 			return result;
 		}
-	} catch {
-		// fixthreads failed
+	} catch (error) {
+		console.error({
+			event: 'plugin_error',
+			plugin: 'threads',
+			url: url.href,
+			error: error instanceof Error ? error.message : String(error),
+		});
 	}
 
 	return null;

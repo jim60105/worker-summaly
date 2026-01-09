@@ -139,14 +139,38 @@ async function summarizeVideo(videoId: VideoId): Promise<Summary | null> {
 			},
 		);
 
-		if (!response.ok) return null;
+		if (!response.ok) {
+			console.warn({
+				event: 'plugin_api_error',
+				plugin: 'bilibili',
+				videoId,
+				status: response.status,
+			});
+			return null;
+		}
 
 		const data = (await response.json()) as BilibiliVideoApiResponse;
 
-		if (data.code !== 0 || !data.data) return null;
+		if (data.code !== 0 || !data.data) {
+			console.warn({
+				event: 'plugin_api_error',
+				plugin: 'bilibili',
+				videoId,
+				apiCode: data.code,
+				message: data.message,
+			});
+			return null;
+		}
 
 		return buildVideoSummary(data.data);
-	} catch {
+	} catch (error) {
+		console.error({
+			event: 'plugin_error',
+			plugin: 'bilibili',
+			type: 'video',
+			videoId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }
@@ -164,14 +188,37 @@ async function summarizeDynamic(dynamicId: string): Promise<Summary | null> {
 			},
 		);
 
-		if (!response.ok) return null;
+		if (!response.ok) {
+			console.warn({
+				event: 'plugin_api_error',
+				plugin: 'bilibili',
+				dynamicId,
+				status: response.status,
+			});
+			return null;
+		}
 
 		const data = (await response.json()) as BilibiliDynamicResponse;
 
-		if (data.code !== 0 || !data.data) return null;
+		if (data.code !== 0 || !data.data) {
+			console.warn({
+				event: 'plugin_api_error',
+				plugin: 'bilibili',
+				dynamicId,
+				apiCode: data.code,
+			});
+			return null;
+		}
 
 		return buildDynamicSummary(data.data.item);
-	} catch {
+	} catch (error) {
+		console.error({
+			event: 'plugin_error',
+			plugin: 'bilibili',
+			type: 'dynamic',
+			dynamicId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }

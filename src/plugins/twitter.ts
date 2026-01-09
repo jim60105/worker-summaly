@@ -124,8 +124,15 @@ export async function summarize(url: URL): Promise<summary | null> {
 		if ('tweet' in data) {
 			return buildSummary(data.tweet);
 		}
-	} catch {
-		// fxtwitter failed, try fallback
+	} catch (error) {
+		console.warn({
+			event: 'plugin_api_error',
+			plugin: 'twitter',
+			api: 'fxtwitter',
+			tweetId,
+			error: error instanceof Error ? error.message : String(error),
+			action: 'trying_vxtwitter_fallback',
+		});
 	}
 
 	// 3. Fallback: try vxtwitter API
@@ -133,8 +140,13 @@ export async function summarize(url: URL): Promise<summary | null> {
 		const response = await get(`https://api.vxtwitter.com/i/status/${tweetId}`);
 		const data = JSON.parse(response) as VxTwitterResponse;
 		return buildSummaryFromVx(data);
-	} catch {
-		// Both APIs failed, return null to let general parser handle it
+	} catch (error) {
+		console.error({
+			event: 'plugin_all_apis_failed',
+			plugin: 'twitter',
+			tweetId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }

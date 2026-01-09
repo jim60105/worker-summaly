@@ -43,26 +43,26 @@ export function test(url: URL): boolean {
 function buildSummary(metadata: EHentaiApiResponse['gmetadata'][0]): Summary {
 	// Process tags and group by namespace
 	const tagMap = new Map<string, string[]>();
-	
+
 	for (const tag of metadata.tags) {
-		const [namespace, tagName] = tag.includes(':') 
-			? tag.split(':') 
+		const [namespace, tagName] = tag.includes(':')
+			? tag.split(':')
 			: ['misc', tag];
-		
+
 		if (!tagMap.has(namespace)) {
 			tagMap.set(namespace, []);
 		}
 		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 		tagMap.get(namespace)!.push(tagName);
 	}
-	
+
 	// Format tag descriptions
 	const tagDescriptions: string[] = [];
 	for (const [namespace, tags] of tagMap) {
 		const translatedNamespace = TAG_NAMESPACE_MAP[namespace] || namespace;
 		tagDescriptions.push(`${translatedNamespace}: ${tags.join(', ')}`);
 	}
-	
+
 	// Combine description
 	const description = [
 		`類別: ${metadata.category}`,
@@ -71,7 +71,7 @@ function buildSummary(metadata: EHentaiApiResponse['gmetadata'][0]): Summary {
 		'',
 		...tagDescriptions,
 	].join('\n');
-	
+
 	return {
 		title: metadata.title_jpn || metadata.title,
 		icon: 'https://e-hentai.org/favicon.ico',
@@ -88,10 +88,10 @@ function buildSummary(metadata: EHentaiApiResponse['gmetadata'][0]): Summary {
 export async function summarize(url: URL): Promise<Summary | null> {
 	const match = url.pathname.match(/^\/g\/(\d+)\/([a-z0-9]+)/);
 	if (!match) return null;
-	
+
 	const [, galleryIdStr, galleryToken] = match;
 	const galleryId = parseInt(galleryIdStr, 10);
-	
+
 	try {
 		const response = await fetch('https://api.e-hentai.org/api.php', {
 			method: 'POST',
@@ -105,16 +105,41 @@ export async function summarize(url: URL): Promise<Summary | null> {
 			}),
 			signal: AbortSignal.timeout(3000),
 		});
-		
-		if (!response.ok) return null;
-		
+
+		if (!response.ok) {
+			console.warn({
+				event: 'plugin_api_error',
+				plugin: 'ehentai',
+				galleryId,
+				galleryToken,
+				status: response.status,
+			});
+			return null;
+		}
+
 		const data = await response.json() as EHentaiApiResponse;
-		
+
 		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-		if (!data.gmetadata || data.gmetadata.length === 0) return null;
-		
+		if (!data.gmetadata || data.gmetadata.length === 0) {
+			console.warn({
+				event: 'plugin_api_error',
+				plugin: 'ehentai',
+				galleryId,
+				galleryToken,
+				reason: 'no_metadata_returned',
+			});
+			return null;
+		}
+
 		return buildSummary(data.gmetadata[0]);
-	} catch {
+	} catch (error) {
+		console.error({
+			event: 'plugin_error',
+			plugin: 'ehentai',
+			galleryId,
+			galleryToken,
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return null;
 	}
 }
