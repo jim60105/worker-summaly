@@ -3,6 +3,8 @@ import type Summary from '@/summary.js';
 import type { GeneralScrapingOptions } from '@/general.js';
 import { clip } from '@/utils/clip.js';
 
+export const name = 'ptt';
+
 export function test(url: URL): boolean {
 	if (url.hostname !== 'www.ptt.cc') return false;
 	// Match /bbs/{board}/{article_id}.html

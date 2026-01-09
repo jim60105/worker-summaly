@@ -3,6 +3,8 @@ import type { GeneralScrapingOptions } from '@/general.js';
 import { general } from '@/general.js';
 import { get } from '@/utils/fetch.js';
 
+export const name = 'komiflo';
+
 /**
  * Komiflo plugin - Image completion via API
  * Extracts thumbnail from Komiflo API when default fails

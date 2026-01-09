@@ -3,6 +3,8 @@ import type { GeneralScrapingOptions } from '@/general.js';
 import { general } from '@/general.js';
 import { StatusError } from '@/utils/status-error.js';
 
+export const name = 'dlsite';
+
 /**
  * DLsite plugin
  * - Corrects announce/work URL mismatches

@@ -1,6 +1,8 @@
 import type Summary from '@/summary.js';
 import { clip } from '@/utils/clip.js';
 
+export const name = 'bilibili';
+
 /**
  * Bilibili plugin - Extracts video and dynamic (opus) metadata using Bilibili API
  * Reference: https://github.com/cubewhy/fxbilibili/blob/main/src/services/bilibili.rs

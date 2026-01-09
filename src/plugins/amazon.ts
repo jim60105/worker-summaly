@@ -1,6 +1,8 @@
 import { scraping } from '@/utils/fetch.js';
 import summary from '@/summary.js';
 
+export const name = 'amazon';
+
 export function test(url: URL): boolean {
 	return url.hostname === 'www.amazon.com' ||
 	url.hostname === 'www.amazon.co.jp' ||

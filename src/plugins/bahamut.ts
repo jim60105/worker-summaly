@@ -3,6 +3,8 @@ import type Summary from '@/summary.js';
 import type { GeneralScrapingOptions } from '@/general.js';
 import { clip } from '@/utils/clip.js';
 
+export const name = 'bahamut';
+
 export function test(url: URL): boolean {
 	const hostname = url.hostname;
 	if (hostname !== 'forum.gamer.com.tw' && hostname !== 'm.gamer.com.tw') {

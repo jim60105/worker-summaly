@@ -4,6 +4,8 @@ import type { GeneralScrapingOptions } from '@/general.js';
 import { get } from '@/utils/fetch.js';
 import { clip } from '@/utils/clip.js';
 
+export const name = 'pixiv';
+
 /**
  * Pixiv plugin - Extracts artwork metadata using Pixiv Ajax API
  * Works without authentication for public artworks

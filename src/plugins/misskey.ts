@@ -1,6 +1,8 @@
 import type Summary from '@/summary.js';
 import { clip } from '@/utils/clip.js';
 
+export const name = 'misskey';
+
 /**
  * List of supported Misskey instance domains
  * Add new Misskey instance domains here to enable support

@@ -3,6 +3,8 @@ import type Summary from '@/summary.js';
 import { get } from '@/utils/fetch.js';
 import { clip } from '@/utils/clip.js';
 
+export const name = 'pchome';
+
 export function test(url: URL): boolean {
 	if (url.hostname !== '24h.pchome.com.tw') return false;
 	// Match /prod/{product_id}

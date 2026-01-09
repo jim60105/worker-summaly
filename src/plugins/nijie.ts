@@ -2,6 +2,8 @@ import type Summary from '@/summary.js';
 import type { GeneralScrapingOptions } from '@/general.js';
 import { general } from '@/general.js';
 
+export const name = 'nijie';
+
 /**
  * Nijie plugin - Image completion
  * Extracts thumbnail from LD+JSON ImageObject

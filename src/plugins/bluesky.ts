@@ -2,6 +2,8 @@ import type Summary from '@/summary.js';
 import { DEFAULT_BOT_UA } from '@/utils/fetch.js';
 import { clip } from '@/utils/clip.js';
 
+export const name = 'bluesky';
+
 // API timeout constants
 const BSKX_API_TIMEOUT = 2500;
 const OFFICIAL_API_TIMEOUT = 2000;

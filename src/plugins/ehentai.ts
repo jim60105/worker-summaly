@@ -1,6 +1,8 @@
 import type Summary from '@/summary.js';
 import { clip } from '@/utils/clip.js';
 
+export const name = 'ehentai';
+
 interface EHentaiApiResponse {
 	gmetadata: Array<{
 		gid: number;

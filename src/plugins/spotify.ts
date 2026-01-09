@@ -2,6 +2,8 @@ import * as cheerio from 'cheerio';
 import type Summary from '@/summary.js';
 import { get } from '@/utils/fetch.js';
 
+export const name = 'spotify';
+
 /**
  * Fast Spotify plugin - Uses oEmbed endpoint for quick metadata retrieval
  * Inspired by mei23/summaly

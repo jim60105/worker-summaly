@@ -2,6 +2,8 @@ import * as cheerio from 'cheerio';
 import type Summary from '@/summary.js';
 import { clip } from '@/utils/clip.js';
 
+export const name = 'weibo';
+
 // Configurable proxy service for Weibo images
 const WEIBO_IMAGE_PROXY = 'weibo-pic.canaria.cc';
 

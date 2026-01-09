@@ -4,6 +4,8 @@ import type { GeneralScrapingOptions } from '@/general.js';
 import { scraping } from '@/utils/fetch.js';
 import { clip } from '@/utils/clip.js';
 
+export const name = 'plurk';
+
 export function test(url: URL): boolean {
 	if (url.hostname !== 'www.plurk.com') return false;
 	// Match /p/{plurk_id} and /m/p/{plurk_id}

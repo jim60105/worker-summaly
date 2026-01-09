@@ -2,6 +2,8 @@ import type Summary from '@/summary.js';
 import type { GeneralScrapingOptions } from '@/general.js';
 import { general } from '@/general.js';
 
+export const name = 'threads';
+
 export function test(url: URL): boolean {
 	const hostname = url.hostname;
 	if (hostname !== 'www.threads.com' && hostname !== 'threads.com') {

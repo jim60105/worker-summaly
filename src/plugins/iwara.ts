@@ -4,6 +4,8 @@ import type { GeneralScrapingOptions } from '@/general.js';
 import { general } from '@/general.js';
 import { clip } from '@/utils/clip.js';
 
+export const name = 'iwara';
+
 /**
  * Iwara plugin - Thumbnail and description completion
  * - Extracts video poster or first image

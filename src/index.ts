@@ -67,13 +67,19 @@ export const summalyDefaultOptions = {
  * Get plugin name for logging purposes
  */
 function getPluginName(plugin: SummalyPlugin): string {
-	// Try to extract module name from the plugin's test function
+	// Prefer the plugin's name property if available
+	if (plugin.name) {
+		return plugin.name;
+	}
+
+	// Fallback: try to extract module name from the plugin's test function
 	const testStr = plugin.test.toString();
 	const hostnameMatch = testStr.match(/hostname\s*===?\s*['"]([^'"]+)['"]/);
 	if (hostnameMatch) {
 		return hostnameMatch[1];
 	}
-	// Fallback to a generic identifier
+
+	// Final fallback to a generic identifier
 	return 'unknown-plugin';
 }
 
