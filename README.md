@@ -35,7 +35,7 @@ The API will be available at `http://localhost:8787`
 
 ## 🔌 Built-in Plugins
 
-Worker Summaly includes **20+ specialized plugins** for extracting metadata from popular platforms and services:
+Worker Summaly includes **25+ specialized plugins** for extracting metadata from popular platforms and services:
 
 ### Social Media & Communication
 
@@ -65,6 +65,10 @@ Worker Summaly includes **20+ specialized plugins** for extracting metadata from
 - **Komiflo** - Comic platform
 - **E-Hentai** - Adult content platform
 - **Booth** - Creator marketplace metadata via the Booth JSON API
+
+### Gaming
+
+- **Steam** - Valve's digital game distribution platform
 
 ### Art & Creative
 
@@ -198,6 +202,7 @@ src/
 │   ├── bilibili.ts    # Bilibili videos
 │   ├── bluesky.ts     # Bluesky posts
 │   ├── pixiv.ts       # Pixiv artworks
+│   ├── steam.ts       # Steam games
 │   ├── twitter.ts     # Twitter/X tweets
 │   ├── wikipedia.ts   # Wikipedia articles
 │   ├── youtube.ts     # YouTube videos

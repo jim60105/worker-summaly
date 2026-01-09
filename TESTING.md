@@ -33,6 +33,7 @@ test/
 │   ├── plurk.test.ts       # Plurk social plugin tests
 │   ├── ptt.test.ts         # PTT forum plugin tests
 │   ├── spotify.test.ts     # Spotify oEmbed plugin tests
+│   ├── steam.test.ts       # Steam game plugin tests
 │   ├── threads.test.ts     # Threads social plugin tests
 │   ├── tiktok.test.ts      # TikTok video plugin tests
 │   ├── twitter.test.ts     # Twitter/X status plugin tests

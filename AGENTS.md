@@ -54,6 +54,10 @@ Worker Summaly extracts metadata from web pages including:
 - **E-Hentai** - Adult content platform
 - **Booth** - Creator marketplace handled via the Booth JSON API
 
+**Gaming:**
+
+- **Steam** - Valve's digital distribution platform using Steam API for game metadata
+
 **Art & Creative:**
 
 - **Pixiv** - Japanese illustration community using Ajax API
@@ -93,6 +97,7 @@ src/
 │   ├── misskey.ts        # Misskey notes
 │   ├── plurk.ts          # Plurk posts
 │   ├── spotify.ts        # Spotify oEmbed
+│   ├── steam.ts          # Steam game pages
 │   ├── weibo.ts          # Weibo posts
 │   ├── instagram.ts      # Instagram posts/reels
 │   ├── pchome.ts         # PChome products
@@ -129,6 +134,7 @@ test/
 │   ├── plurk.test.ts     # Plurk social tests
 │   ├── ptt.test.ts       # PTT forum tests
 │   ├── spotify.test.ts   # Spotify oEmbed tests
+│   ├── steam.test.ts     # Steam game plugin tests
 │   ├── threads.test.ts   # Threads social tests
 │   ├── tiktok.test.ts    # TikTok video tests
 │   ├── twitter.test.ts   # Twitter/X status tests
