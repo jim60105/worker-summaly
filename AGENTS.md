@@ -22,7 +22,7 @@ Worker Summaly extracts metadata from web pages including:
 - **CORS Enabled**: Ready for browser-based applications
 - **Modern ES Modules**: No CommonJS, pure ESM throughout
 
-### Built-in Plugins (24 Total)
+### Built-in Plugins (27 Total)
 
 **Social Media & Communication:**
 
@@ -33,6 +33,7 @@ Worker Summaly extracts metadata from web pages including:
 - **Plurk** - Timeline-based social network
 - **Weibo** - Chinese microblogging platform
 - **Instagram** - Instagram posts and reels (currently non-functional due to platform restrictions)
+- **ActivityPub** - Federated ActivityPub/Fediverse metadata across Mastodon, Pleroma, Lemmy, PeerTube, PixelFed, GoToSocial, Friendica, Hubzilla, and similar networks
 
 **Video & Streaming:**
 

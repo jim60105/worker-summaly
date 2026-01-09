@@ -1,3 +1,4 @@
+import * as activitypub from './activitypub.js';
 import * as amazon from './amazon.js';
 import * as bahamut from './bahamut.js';
 import * as ptt from './ptt.js';
@@ -24,6 +25,8 @@ import * as branchIoDeeplinks from './branchio-deeplinks.js';
 import { SummalyPlugin } from '@/iplugin.js';
 
 export const plugins: SummalyPlugin[] = [
+	misskey,
+	activitypub,
 	amazon,
 	bahamut,
 	ptt,
@@ -35,7 +38,6 @@ export const plugins: SummalyPlugin[] = [
 	komiflo,
 	nijie,
 	threads,
-	misskey,
 	plurk,
 	spotify,
 	weibo,

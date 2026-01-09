@@ -45,6 +45,7 @@ Worker Summaly includes **24 specialized plugins** for extracting metadata from 
 - **Misskey** - Japanese microblogging platform
 - **Plurk** - Timeline-based social network
 - **Weibo** - Chinese microblogging platform
+- **ActivityPub** - Federated ActivityPub/Fediverse metadata for Mastodon, Pleroma, Lemmy, PeerTube, PixelFed, GoToSocial, Friendica, Hubzilla, and other federated networks
 
 ### Video & Streaming
 

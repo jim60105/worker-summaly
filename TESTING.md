@@ -16,6 +16,7 @@ test/
 ├── index.test.ts           # Core unit tests (runs in Workers runtime)
 ├── worker.test.ts          # Integration tests for Worker entry point (runs in Node.js)
 ├── plugins/                # Plugin-specific tests (each runs in Workers runtime)
+│   ├── activitypub.test.ts # ActivityPub federated metadata plugin tests
 │   ├── bahamut.test.ts     # Bahamut forum plugin tests
 │   ├── bilibili.test.ts    # Bilibili video plugin tests
 │   ├── bluesky.test.ts     # Bluesky social plugin tests
@@ -45,6 +46,11 @@ test/
 └── mocks/
     └── handlers.ts         # Mock handlers (legacy, not currently used)
 ```
+
+
+### ActivityPub Plugin Testing
+
+- **ActivityPub tests** cover federated metadata parsing (Mastodon, Pleroma, Lemmy, PeerTube, PixelFed, GoToSocial, Friendica, Hubzilla) and ensure the plugin keeps extracting ActivityPub and Fediverse creator data.
 
 ### Test Organization
 
