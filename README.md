@@ -17,30 +17,7 @@ Forked from [misskey-dev/summaly](https://github.com/misskey-dev/summaly) and co
 
 ### Deploy to Cloudflare Workers
 
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/jim60105/worker-summaly.git
-   cd worker-summaly
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   pnpm install
-   ```
-
-3. **Build the project**
-
-   ```bash
-   pnpm run build
-   ```
-
-4. **Deploy to Cloudflare Workers**
-
-   ```bash
-   pnpm run deploy
-   ```
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/jim60105/worker-summaly)
 
 ### Local Development
 
