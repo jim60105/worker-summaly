@@ -186,7 +186,7 @@ describe('Booth Plugin', () => {
 			const result = await summarize(new URL('https://booth.pm/items/333333'));
 
 			expect(result).not.toBeNull();
-			expect(result?.description).toBe('久遠たま公式ショップ');
+			expect(result?.description).toBe('久遠たま公式ショップ\n價格: 1,000 JPY');
 		});
 
 		test('no images should return null thumbnail', async () => {

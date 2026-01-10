@@ -112,11 +112,23 @@ function buildSummary(data: BoothApiResponse): Summary {
 	// Normalize whitespace
 	description = description.replace(/\s+/g, ' ').trim();
 
-	// Combine shop name with description
-	const fullDescription = [
-		data.shop.name,
-		description ? `\n\n${description}` : '',
-	].join('');
+	// Build description parts
+	const descriptionParts: string[] = [];
+
+	// Add shop name
+	descriptionParts.push(data.shop.name);
+
+	// Add price if available
+	if (data.price) {
+		descriptionParts.push(`價格: ${data.price}`);
+	}
+
+	// Add product description
+	if (description) {
+		descriptionParts.push(`\n${description}`);
+	}
+
+	const fullDescription = descriptionParts.join('\n');
 
 	// Get the first image as thumbnail
 	const thumbnail = data.images?.[0]?.original || null;

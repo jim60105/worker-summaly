@@ -163,6 +163,29 @@ function buildSummary(data: SteamAppData): Summary {
 	// Normalize whitespace
 	description = description.replace(/\s+/g, ' ').trim();
 
+	// Build description parts
+	const descriptionParts: string[] = [];
+
+	// Add main description
+	if (description) {
+		descriptionParts.push(description);
+	}
+
+	// Add price information
+	if (data.is_free) {
+		descriptionParts.push('價格: 免費');
+	} else if (data.price_overview) {
+		const priceInfo = data.price_overview;
+		if (priceInfo.discount_percent > 0) {
+			// Show original and discounted price
+			descriptionParts.push(`價格: ${priceInfo.final_formatted} (原價: ${priceInfo.initial_formatted}, 折扣: ${priceInfo.discount_percent}%)`);
+		} else {
+			descriptionParts.push(`價格: ${priceInfo.final_formatted}`);
+		}
+	}
+
+	const fullDescription = descriptionParts.join('\n');
+
 	// Check if content is sensitive (adult-only)
 	// required_age can be a number or string like "18"
 	const requiredAge = typeof data.required_age === 'string'
@@ -173,7 +196,7 @@ function buildSummary(data: SteamAppData): Summary {
 	return {
 		title: data.name,
 		icon: 'https://store.steampowered.com/favicon.ico',
-		description: clip(description, 300),
+		description: clip(fullDescription, 300),
 		thumbnail: data.header_image || null,
 		sitename: 'Steam',
 		sensitive,

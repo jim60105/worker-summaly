@@ -292,7 +292,7 @@ describe('Steam Plugin', () => {
 			const result = await summarize(new URL('https://store.steampowered.com/app/333333'));
 
 			expect(result).not.toBeNull();
-			expect(result?.description).toBe('');
+			expect(result?.description).toBe('價格: NT$ 148');
 		});
 
 		test('missing header_image should return null thumbnail', async () => {
