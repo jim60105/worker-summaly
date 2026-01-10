@@ -15,59 +15,56 @@ Worker Summaly extracts metadata from web pages including:
 ### Key Features
 
 - **Edge-Native Architecture**: Runs on Cloudflare's global edge network for minimal latency
-- **26 Specialized Plugins**: Domain-specific handlers for major platforms
+- **Specialized Plugins**: Domain-specific handlers for major platforms
 - **TypeScript**: Fully typed with strict mode enabled
 - **Zero Dependencies Runtime**: Only 3 runtime dependencies (cheerio, escape-regexp, html-entities)
-- **Comprehensive Testing**: 237 tests across unit, plugin, and integration test suites
+- **Comprehensive Testing**: 200+ tests across unit, plugin, and integration test suites
 - **CORS Enabled**: Ready for browser-based applications
 - **Modern ES Modules**: No CommonJS, pure ESM throughout
 
 ### Built-in Plugins
 
-**Social Media & Communication:**
+#### Social Media & Communication
 
-- **Twitter/X** - Enhanced metadata extraction for tweets using FxTwitter/VxTwitter APIs
+- **Twitter/X** - Enhanced metadata extraction for tweets
 - **Threads** - Meta's Threads platform support
 - **Bluesky** - Decentralized social network support
-- **Misskey** - Japanese microblogging platform (Fediverse)
+- **Misskey** - Japanese microblogging platform
 - **Plurk** - Timeline-based social network
 - **Weibo** - Chinese microblogging platform
-- **Instagram** - Instagram posts and reels (currently non-functional due to platform restrictions)
-- **ActivityPub** - Federated ActivityPub/Fediverse metadata across Mastodon, Pleroma, Lemmy, PeerTube, PixelFed, GoToSocial, Friendica, Hubzilla, and similar networks
+- **ActivityPub** - Federated ActivityPub/Fediverse metadata for Mastodon, Pleroma, Lemmy, PeerTube, PixelFed, GoToSocial, Friendica, Hubzilla, and other federated networks
 
-**Video & Streaming:**
+#### Video & Streaming
 
-- **YouTube** - Video metadata and oEmbed player embedding
+- **YouTube** - Video metadata and player embedding
+- **Twitch** - Live streaming platform with retry logic for cached responses
 - **TikTok** - Short-form video content
 - **Bilibili** - Chinese video sharing platform
-- **Iwara** - Video sharing platform with sensitive content detection
-- **Spotify** - Music and podcast streaming via oEmbed
+- **Iwara** - Video sharing platform
+- **Spotify** - Music and podcast streaming
 
-**Content Platforms:**
+#### Content Platforms
 
 - **Wikipedia** - Encyclopedia articles with API integration
 - **Amazon** - Product page metadata extraction
-- **DLsite** - Digital content marketplace
 - **Bahamut** - Taiwanese gaming and anime community
 - **PTT** - Taiwan's largest online forum
 - **Komiflo** - Comic platform
 - **E-Hentai** - Adult content platform
-- **Booth** - Creator marketplace handled via the Booth JSON API
 
-**Gaming:**
+#### Art & Creative
 
-- **Steam** - Valve's digital distribution platform using Steam API for game metadata
-
-**Art & Creative:**
-
-- **Pixiv** - Japanese illustration community using Ajax API
+- **Pixiv** - Japanese illustration community
 - **Nijie** - Japanese art community
 
-**E-commerce:**
+#### E-commerce & Marketplaces
 
-- **PChome** - Taiwanese e-commerce platform (PChome 24h)
+- **PChome** - Taiwanese e-commerce platform
+- **DLsite** - Digital content marketplace
+- **Booth** - Creator marketplace metadata via the Booth JSON API
+- **Steam** - Valve's digital game distribution platform
 
-**Other Services:**
+#### Other Services
 
 - **Branch.io** - Deep link resolution
 
@@ -80,7 +77,7 @@ src/
 ├── general.ts            # HTML parsing logic, oEmbed player detection
 ├── summary.ts            # TypeScript type definitions (Summary/SummalyResult)
 ├── iplugin.ts            # Plugin interface definition
-├── plugins/              # Built-in plugins (24 total)
+├── plugins/              # Built-in plugins
 │   ├── index.ts          # Plugin registry
 │   ├── amazon.ts         # Amazon product pages
 │   ├── bahamut.ts        # Bahamut forum posts
@@ -103,6 +100,7 @@ src/
 │   ├── pchome.ts         # PChome products
 │   ├── tiktok.ts         # TikTok videos
 │   ├── twitter.ts        # Twitter/X tweets
+│   ├── twitch.ts         # Twitch streams/clips with retry
 │   ├── pixiv.ts          # Pixiv artworks
 │   ├── wikipedia.ts      # Wikipedia articles
 │   ├── youtube.ts        # YouTube oEmbed
@@ -138,6 +136,7 @@ test/
 │   ├── threads.test.ts   # Threads social tests
 │   ├── tiktok.test.ts    # TikTok video tests
 │   ├── twitter.test.ts   # Twitter/X status tests
+│   ├── twitch.test.ts    # Twitch streaming tests
 │   ├── weibo.test.ts     # Weibo post tests
 │   └── youtube.test.ts   # YouTube oEmbed tests
 ├── utils/
@@ -300,14 +299,14 @@ Built-in plugins are registered in [src/plugins/index.ts](src/plugins/index.ts).
 ### Test Structure
 
 - `test/index.test.ts` - Core summaly functionality tests (57 tests)
-- `test/plugins/*.test.ts` - Plugin-specific tests (20 test files, 156 tests total)
+- `test/plugins/*.test.ts` - Plugin-specific tests (21 test files, 165 tests total)
 - `test/worker.test.ts` - Worker HTTP endpoint integration tests (7 tests)
 - `test/utils/test-utils.ts` - Shared mock utilities and helper functions
 - `test/fixtures/` - Embedded HTML and oEmbed test fixtures
 
-**Total Test Count:** 220 tests (57 core + 156 plugin + 7 integration)
+**Total Test Count:** 229 tests (57 core + 165 plugin + 7 integration)
 
-**Test Coverage:** 213/213 unit and plugin tests passing (100%), 6/7 integration tests passing
+**Test Coverage:** 222/222 unit and plugin tests passing (100%), 6/7 integration tests passing
 
 ### Writing Plugin Tests
 

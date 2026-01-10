@@ -20,6 +20,7 @@ import * as instagram from './instagram.js';
 import * as pchome from './pchome.js';
 import * as tiktok from './tiktok.js';
 import * as twitter from './twitter.js';
+import * as twitch from './twitch.js';
 import * as pixiv from './pixiv.js';
 import * as wikipedia from './wikipedia.js';
 import * as youtube from './youtube.js';
@@ -49,6 +50,7 @@ export const plugins: SummalyPlugin[] = [
 	pchome,
 	tiktok,
 	twitter,
+	twitch,
 	pixiv,
 	wikipedia,
 	youtube,

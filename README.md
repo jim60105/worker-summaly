@@ -50,6 +50,7 @@ Worker Summaly includes **20+ specialized plugins** for extracting metadata from
 ### Video & Streaming
 
 - **YouTube** - Video metadata and player embedding
+- **Twitch** - Live streaming platform with retry logic for cached responses
 - **TikTok** - Short-form video content
 - **Bilibili** - Chinese video sharing platform
 - **Iwara** - Video sharing platform
