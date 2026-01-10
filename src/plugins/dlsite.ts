@@ -88,29 +88,31 @@ function correctUrl(url: URL): URL | null {
 
 /**
  * Extract price from DLsite page HTML
+ * DLsite uses Vue.js with data attributes for price information
  */
 async function extractPrice(url: URL, opts?: GeneralScrapingOptions): Promise<string | null> {
 	try {
 		const html = await get(url.href);
 		const $ = cheerio.load(html);
 
-		// Try multiple selectors for price
-		// DLsite uses different selectors across languages and product types
-		const priceSelectors = [
-			'.work_buy .price',
-			'.work_price .price',
-			'#work_price',
-			'.price_value',
-			'span.price',
-		];
+		// DLsite stores price in data attributes
+		// Look for elements with data-price attribute
+		const priceElement = $('[data-price]').first();
+		if (priceElement.length > 0) {
+			const price = priceElement.attr('data-price');
+			const officialPrice = priceElement.attr('data-official_price');
 
-		for (const selector of priceSelectors) {
-			const priceElement = $(selector).first();
-			if (priceElement.length > 0) {
-				const priceText = priceElement.text().trim();
-				if (priceText) {
-					return priceText;
+			if (price) {
+				const priceNum = parseInt(price, 10);
+				const officialPriceNum = officialPrice ? parseInt(officialPrice, 10) : null;
+
+				// Check if there's a discount
+				if (officialPriceNum && officialPriceNum > priceNum) {
+					const discountPercent = Math.round((1 - priceNum / officialPriceNum) * 100);
+					return `¥${priceNum} (原價: ¥${officialPriceNum}, 折扣: ${discountPercent}%)`;
 				}
+
+				return `¥${priceNum}`;
 			}
 		}
 
@@ -137,11 +139,11 @@ function addPriceAndSensitiveFlag(url: URL, summary: Summary | null, price: stri
 	if (price) {
 		const descriptionParts: string[] = [];
 
+		descriptionParts.push(`價格: ${price}`);
+
 		if (summary.description) {
 			descriptionParts.push(summary.description);
 		}
-
-		descriptionParts.push(`價格: ${price}`);
 
 		summary.description = descriptionParts.join('\n');
 	}
