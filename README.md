@@ -35,7 +35,7 @@ The API will be available at `http://localhost:8787`
 
 ## 🔌 Built-in Plugins
 
-Worker Summaly includes **25+ specialized plugins** for extracting metadata from popular platforms and services:
+Worker Summaly includes **20+ specialized plugins** for extracting metadata from popular platforms and services:
 
 ### Social Media & Communication
 
@@ -59,25 +59,22 @@ Worker Summaly includes **25+ specialized plugins** for extracting metadata from
 
 - **Wikipedia** - Encyclopedia articles with API integration
 - **Amazon** - Product page metadata extraction
-- **DLsite** - Digital content marketplace
 - **Bahamut** - Taiwanese gaming and anime community
 - **PTT** - Taiwan's largest online forum
 - **Komiflo** - Comic platform
 - **E-Hentai** - Adult content platform
-- **Booth** - Creator marketplace metadata via the Booth JSON API
-
-### Gaming
-
-- **Steam** - Valve's digital game distribution platform
 
 ### Art & Creative
 
 - **Pixiv** - Japanese illustration community
 - **Nijie** - Japanese art community
 
-### E-commerce
+### E-commerce & Marketplaces
 
 - **PChome** - Taiwanese e-commerce platform
+- **DLsite** - Digital content marketplace
+- **Booth** - Creator marketplace metadata via the Booth JSON API
+- **Steam** - Valve's digital game distribution platform
 
 ### Other Services
 
@@ -134,27 +131,27 @@ curl "https://your-worker.workers.dev/?url=https://www.youtube.com/watch?v=dQw4w
 
 ```json
 {
- "title": "Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)",
- "icon": "https://www.youtube.com/s/desktop/014dbbed/img/favicon_32x32.png",
- "description": null,
- "thumbnail": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
- "sitename": "YouTube",
- "player": {
-   "url": "https://www.youtube.com/embed/dQw4w9WgXcQ?feature=oembed",
-   "width": 200,
-   "height": 113,
-   "allow": [
-     "autoplay",
-     "clipboard-write",
-     "encrypted-media",
-     "fullscreen",
-     "picture-in-picture"
-   ]
- },
- "sensitive": false,
- "activityPub": null,
- "fediverseCreator": null,
- "url": "https://m.youtube.com/watch?v=dQw4w9WgXcQ"
+  "title": "Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)",
+  "icon": "https://www.youtube.com/s/desktop/014dbbed/img/favicon_32x32.png",
+  "description": null,
+  "thumbnail": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+  "sitename": "YouTube",
+  "player": {
+    "url": "https://www.youtube.com/embed/dQw4w9WgXcQ?feature=oembed",
+    "width": 200,
+    "height": 113,
+    "allow": [
+      "autoplay",
+      "clipboard-write",
+      "encrypted-media",
+      "fullscreen",
+      "picture-in-picture"
+    ]
+  },
+  "sensitive": false,
+  "activityPub": null,
+  "fediverseCreator": null,
+  "url": "https://m.youtube.com/watch?v=dQw4w9WgXcQ"
 }
 ```
 
@@ -195,7 +192,7 @@ src/
 ├── general.ts         # HTML parsing and metadata extraction
 ├── summary.ts         # TypeScript type definitions
 ├── iplugin.ts         # Plugin interface definition
-├── plugins/           # 24 site-specific plugins
+├── plugins/           # Site-specific plugins
 │   ├── index.ts       # Plugin registry
 │   ├── amazon.ts      # Amazon products
 │   ├── bahamut.ts     # Bahamut forum
@@ -206,7 +203,7 @@ src/
 │   ├── twitter.ts     # Twitter/X tweets
 │   ├── wikipedia.ts   # Wikipedia articles
 │   ├── youtube.ts     # YouTube videos
-│   └── ...            # 16 more plugins
+│   └── ...            # More plugins
 └── utils/             # Utility functions
     ├── fetch.ts       # HTTP client wrapper
     ├── encoding.ts    # Character encoding handling
@@ -216,9 +213,9 @@ src/
 test/
 ├── index.test.ts      # Core functionality tests (57 tests)
 ├── worker.test.ts     # Worker integration tests (7 tests)
-├── plugins/           # Plugin-specific tests (21 files, 173 tests)
+├── plugins/           # Plugin-specific tests
 │   ├── bahamut.test.ts
-│   ├── booth.test.ts   # Booth marketplace plugin tests
+│   ├── booth.test.ts
 │   ├── pixiv.test.ts
 │   ├── twitter.test.ts
 │   └── ...
