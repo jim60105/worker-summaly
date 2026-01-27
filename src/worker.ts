@@ -43,6 +43,30 @@ function jsonResponse(data: unknown, status = 200): Response {
 }
 
 /**
+ * Parse numeric query parameter
+ * @returns parsed number or undefined if invalid/missing
+ */
+function parseNumberParam(value: string | null): number | undefined {
+	if (value === null) return undefined;
+	const num = Number(value);
+	if (Number.isNaN(num) || num < 0) return undefined;
+	return num;
+}
+
+/**
+ * Parse boolean query parameter
+ * @returns parsed boolean or undefined if missing
+ */
+function parseBooleanParam(value: string | null): boolean | undefined {
+	if (value === null) return undefined;
+	// Accept 'true', '1', 'yes' as true; 'false', '0', 'no' as false
+	const lower = value.toLowerCase();
+	if (lower === 'true' || lower === '1' || lower === 'yes') return true;
+	if (lower === 'false' || lower === '0' || lower === 'no') return false;
+	return undefined;
+}
+
+/**
  * Cloudflare Workers fetch handler
  */
 // eslint-disable-next-line import/no-default-export
@@ -84,6 +108,12 @@ export default {
 		if (requestUrl.pathname === '/' || requestUrl.pathname === '/api/summarize') {
 			const targetUrl = requestUrl.searchParams.get('url');
 			const lang = requestUrl.searchParams.get('lang') || undefined;
+			
+			// Parse new optional parameters
+			const timeout = parseNumberParam(requestUrl.searchParams.get('timeout'));
+			const contentLengthLimit = parseNumberParam(requestUrl.searchParams.get('contentLengthLimit'));
+			const contentLengthRequired = parseBooleanParam(requestUrl.searchParams.get('contentLengthRequired'));
+			const userAgent = requestUrl.searchParams.get('userAgent') || undefined;
 
 			// Validate required parameter
 			if (!targetUrl) {
@@ -117,12 +147,19 @@ export default {
 				event: 'summarization_request',
 				targetUrl,
 				lang: lang || 'default',
+				timeout: timeout || 'default',
+				contentLengthLimit: contentLengthLimit || 'default',
+				contentLengthRequired: contentLengthRequired ?? 'default',
+				userAgent: userAgent || 'default',
 			});
 
 			try {
 				const result: SummalyResult = await summaly(targetUrl, {
 					lang,
-					// Additional options can be configured here
+					operationTimeout: timeout,
+					contentLengthLimit,
+					contentLengthRequired,
+					userAgent,
 				});
 
 				console.info({
