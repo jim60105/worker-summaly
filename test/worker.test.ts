@@ -110,4 +110,94 @@ describe('Worker Entry Point', () => {
 
 		console.log('Twitter/X Summary Result:', JSON.stringify(json, null, 2));
 	});
+
+	describe('Query Parameter Parsing', () => {
+		it('should accept valid timeout parameter', async () => {
+			const response = await worker.fetch('/?url=https://example.com&timeout=5000');
+			// Verify no error due to parameter parsing
+			expect(response.status).not.toBe(400);
+		});
+
+		it('should ignore invalid timeout parameter', async () => {
+			const response = await worker.fetch('/?url=https://example.com&timeout=invalid');
+			// Should proceed with default timeout
+			expect(response.status).not.toBe(400);
+		});
+
+		it('should ignore negative timeout parameter', async () => {
+			const response = await worker.fetch('/?url=https://example.com&timeout=-1000');
+			// Should proceed with default timeout
+			expect(response.status).not.toBe(400);
+		});
+
+		it('should accept valid contentLengthLimit parameter', async () => {
+			const response = await worker.fetch('/?url=https://example.com&contentLengthLimit=1048576');
+			expect(response.status).not.toBe(400);
+		});
+
+		it('should ignore invalid contentLengthLimit parameter', async () => {
+			const response = await worker.fetch('/?url=https://example.com&contentLengthLimit=abc');
+			expect(response.status).not.toBe(400);
+		});
+
+		it('should accept contentLengthRequired=true', async () => {
+			const response = await worker.fetch('/?url=https://example.com&contentLengthRequired=true');
+			expect(response.status).not.toBe(400);
+		});
+
+		it('should accept contentLengthRequired=false', async () => {
+			const response = await worker.fetch('/?url=https://example.com&contentLengthRequired=false');
+			expect(response.status).not.toBe(400);
+		});
+
+		it('should accept contentLengthRequired=1 as true', async () => {
+			const response = await worker.fetch('/?url=https://example.com&contentLengthRequired=1');
+			expect(response.status).not.toBe(400);
+		});
+
+		it('should accept contentLengthRequired=0 as false', async () => {
+			const response = await worker.fetch('/?url=https://example.com&contentLengthRequired=0');
+			expect(response.status).not.toBe(400);
+		});
+
+		it('should accept contentLengthRequired=yes as true', async () => {
+			const response = await worker.fetch('/?url=https://example.com&contentLengthRequired=yes');
+			expect(response.status).not.toBe(400);
+		});
+
+		it('should accept contentLengthRequired=no as false', async () => {
+			const response = await worker.fetch('/?url=https://example.com&contentLengthRequired=no');
+			expect(response.status).not.toBe(400);
+		});
+
+		it('should ignore invalid contentLengthRequired parameter', async () => {
+			const response = await worker.fetch('/?url=https://example.com&contentLengthRequired=maybe');
+			expect(response.status).not.toBe(400);
+		});
+
+		it('should accept custom userAgent parameter', async () => {
+			const response = await worker.fetch('/?url=https://example.com&userAgent=CustomBot/1.0');
+			expect(response.status).not.toBe(400);
+		});
+
+		it('should accept URL-encoded userAgent parameter', async () => {
+			const userAgent = encodeURIComponent('Custom Bot/1.0 (with spaces)');
+			const response = await worker.fetch(`/?url=https://example.com&userAgent=${userAgent}`);
+			expect(response.status).not.toBe(400);
+		});
+
+		it('should accept multiple optional parameters', async () => {
+			const response = await worker.fetch(
+				'/?url=https://example.com&timeout=5000&contentLengthLimit=1048576&contentLengthRequired=true&userAgent=CustomBot/1.0',
+			);
+			expect(response.status).not.toBe(400);
+		});
+
+		it('should work with /api/summarize endpoint', async () => {
+			const response = await worker.fetch(
+				'/api/summarize?url=https://example.com&timeout=5000&userAgent=CustomBot/1.0',
+			);
+			expect(response.status).not.toBe(400);
+		});
+	});
 });

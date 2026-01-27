@@ -89,20 +89,34 @@ Worker Summaly includes **20+ specialized plugins** for extracting metadata from
 ### Endpoint
 
 ```http
-GET /?url={target_url}&lang={language}
+GET /?url={target_url}&lang={language}&timeout={timeout}&contentLengthLimit={limit}&contentLengthRequired={boolean}&userAgent={agent}
 ```
 
 ### Query Parameters
 
-| Parameter | Type     | Required | Description                                       |
-|-----------|----------|----------|---------------------------------------------------|
-| `url`     | string   | ✅       | The URL of the web page to summarize              |
-| `lang`    | string   | ❌       | Accept-Language header value (e.g., `en`, `ja`)   |
+| Parameter | Type     | Required | Description                                       | Default |
+|-----------|----------|----------|---------------------------------------------------|---------|
+| `url`     | string   | ✅       | The URL of the web page to summarize              | - |
+| `lang`    | string   | ❌       | Accept-Language header value (e.g., `en`, `ja`)   | - |
+| `timeout` | number   | ❌       | Operation timeout in milliseconds                 | 60000 (60s) |
+| `contentLengthLimit` | number | ❌ | Maximum response size in bytes              | 10485760 (10MB) |
+| `contentLengthRequired` | boolean | ❌ | Require Content-Length header            | false |
+| `userAgent` | string | ❌       | Custom User-Agent header                        | iPad Safari UA |
 
 ### Example Request
 
 ```bash
+# Basic usage
 curl "https://your-worker.workers.dev/?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
+# With timeout and content length limit
+curl "https://your-worker.workers.dev/?url=https://example.com&timeout=5000&contentLengthLimit=1048576"
+
+# With custom user agent
+curl "https://your-worker.workers.dev/?url=https://example.com&userAgent=MyBot/1.0"
+
+# Require Content-Length header
+curl "https://your-worker.workers.dev/?url=https://example.com&contentLengthRequired=true"
 ```
 
 ### Response Format
