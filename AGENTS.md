@@ -211,13 +211,37 @@ Main summarization endpoint.
 
 **Query Parameters:**
 
-- `url` (required) - The URL to summarize
-- `lang` (optional) - Accept-Language header value
+| Parameter | Type | Required | Description | Default |
+|-----------|------|----------|-------------|---------|
+| `url` | string | Yes | The URL to summarize | - |
+| `lang` | string | No | Accept-Language header value | - |
+| `timeout` | number | No | Operation timeout in milliseconds | 60000 (60s) |
+| `contentLengthLimit` | number | No | Maximum response size in bytes | 10485760 (10MB) |
+| `contentLengthRequired` | boolean | No | Require Content-Length header | false |
+| `userAgent` | string | No | Custom User-Agent header | iPad Safari UA |
 
 **Response:** `SummalyResult` JSON object
 
+**Examples:**
+
 ```bash
+# Basic usage
 curl "https://your-worker.workers.dev/?url=https://example.com"
+
+# Set 5 second timeout
+curl "https://your-worker.workers.dev/?url=https://example.com&timeout=5000"
+
+# Limit response size to 1MB
+curl "https://your-worker.workers.dev/?url=https://example.com&contentLengthLimit=1048576"
+
+# Require Content-Length header
+curl "https://your-worker.workers.dev/?url=https://example.com&contentLengthRequired=true"
+
+# Custom User-Agent
+curl "https://your-worker.workers.dev/?url=https://example.com&userAgent=MyBot/1.0"
+
+# Combine multiple parameters
+curl "https://your-worker.workers.dev/?url=https://example.com&timeout=5000&contentLengthLimit=1048576&contentLengthRequired=true"
 ```
 
 ### GET /health
